@@ -1,12 +1,25 @@
 FlxTilemap
 ==========
 
-## TODO
+### Features to implements
+
+ * Heights / Slopes maybe?
+ * Bridge implementation
+
+### Bugs
 
  * Adjust mouse clicking / pathfinding;
- * Make sure it works in all targets;
  * Collisions (check and adjust as necessary);
  * Bigger-than-tile objects;
- * Heights / Slopes maybe?
+
+### Targets
+
+ * [x] flash
+ * [ ] html5
+ * [ ] desktop
+ * [ ] android
+ * [ ] ios
+
+### Misc
+
  * Performance optimization?
- * Bridge implementation
