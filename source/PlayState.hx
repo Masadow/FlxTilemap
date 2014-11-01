@@ -7,6 +7,8 @@ import flixel.FlxObject;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.tile.FlxBaseTilemap.FlxTilemapAutoTiling;
+import flixel.util.FlxTimer;
+import tile.FlxIsoTilemap;
 import tile.FlxIsoTilemap;
 
 /**
@@ -57,21 +59,24 @@ class PlayState extends FlxState
 		
 		//Isometric tilemap
 		map = new FlxIsoTilemap();
-		map.widthInTiles = mapWidth;
-		map.heightInTiles = mapHeight;
+		//map.widthInTiles = mapWidth;
+		//map.heightInTiles = mapHeight;
 		map._tileDepth = 24;
-		map.loadMap(flixelMapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
-		map.adjustTiles();
-		map.setTileProperties(2, FlxObject.ANY, null, null, 16);
+		//map.loadMap(flixelMapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		//map.loadMapFromArray(flixelMapData, mapWidth, mapHeight, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		map.loadMapFrom2DArray(mapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		//map.adjustTiles();
+		var timer = new FlxTimer(2, function (t:FlxTimer) { map.adjustTiles(); } );
+		//map.setTileProperties(2, FlxObject.ANY, null, null, 16);
 		map.camera.antialiasing = true;
 		add(map);
 		
 		//Adding FlxIsoSprite to the map (WARNING: Currently working on Flash and HTML5 only!)
 		#if (flash || html5)
-		var charA = new FlxIsoSprite(0, 0, false);
+/*		var charA = new FlxIsoSprite(0, 0, false);
 		map.add(charA);
 		var initialTile:IsoRect = map.getIsoRectAt(3 * mapWidth + 3);
-		charA.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
+		charA.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);*/
 		#end
 		
 		var text:String = "";
