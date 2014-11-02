@@ -612,7 +612,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				drawTilemap(buffer, camera);
 			}
 			
-			getScreenPosition(_point, camera).add(buffer.x, buffer.y).copyToFlash(_flashPoint);
+			//getScreenPosition(_point, camera).add(buffer.x, buffer.y).copyToFlash(_flashPoint);
 			buffer.draw(camera, _flashPoint, scale.x, scale.y);
 			#else			
 			drawTilemap(buffer, camera);
@@ -1025,6 +1025,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var drawItem:FlxDrawStackItem;
 	#end
 		
+		var isColored:Bool = ((alpha != 1) || (color != 0xffffff));
+		
 		// Copy tile images into the tile buffer
 		_point.x = (Camera.scroll.x * scrollFactor.x) - x; //modified from getScreenXY()
 		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
@@ -1112,6 +1114,16 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			}
 		}
 		
+		#if FLX_RENDER_BLIT
+		if (isColored)
+		{
+			Buffer.colorTransform(colorTransform);
+		}
+		Buffer.blend = blend;
+		#end
+		
+		Buffer.dirty = false;
+		
 		#if FLX_RENDER_TILE
 		drawItem.position = currIndex;
 		#end
@@ -1161,18 +1173,11 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	override private function updateTile(Index:Int):Void
 	{
 		var tile:FlxIsoTile = _tileObjects[Index];
-		//var tile:FlxIsoTile = _tileObjects[_data[Index]];
 		
 		if ((tile == null) || !tile.visible)
 		{
-/*			_rects[Index] = null;
-			#if FLX_RENDER_TILE
-			_rectIDs[Index] = -1;
-			#end*/
-			
 			return;
 		}
-		
 		
 		tile.frame = frames.frames[Index - _startingIndex];
 	}
