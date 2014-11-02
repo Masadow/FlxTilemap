@@ -250,10 +250,12 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		if (Std.is(TileGraphic, FlxTileFrames))
 		{
 			frames = cast(TileGraphic, FlxTileFrames);
+			trace( "frames : " + frames );
 			return;
 		}
 		
 		var graph:FlxGraphic = FlxG.bitmap.add(cast TileGraphic);
+		trace( "graph : " + graph.width + " x " + graph.height );
 		// Figure out the size of the tiles
 		_tileWidth = TileWidth;
 		
@@ -276,6 +278,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		}
 		
 		frames = FlxTileFrames.fromGraphic(graph, new FlxPoint(_tileWidth, _tileDepth + _tileHeight));
+		//trace( "frames : " + frames );
 	}
 	
 	override private function initTileObjects():Void 
@@ -317,11 +320,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		FlxArrayUtil.setLength(_rects, totalTiles);
 		
 		#if (!FLX_NO_DEBUG && FLX_RENDER_BLIT)
-		_debugRect = new Rectangle(0, 0, _tileWidth, _tileHeight);
+		_debugRect = new Rectangle(0, 0, _tileWidth, (_tileDepth + _tileHeight));
 		#end
 		
 		var numTiles:Int = _tileObjects.length;
-		trace( "numTiles : " + numTiles );
 		
 		for (i in 0...numTiles)
 		{
@@ -354,11 +356,38 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				_flashPoint.x += _scaledTileWidth / 2;
 				_flashPoint.y += _scaledTileDepth / 2;
 				
-				var rect = _rects[columnIndex];
-				if (rect.depth == -1) {
-					rect.setIso(_flashPoint.x, _flashPoint.y);
-					rect.depth = Std.int(_flashPoint.y * rect.depthModifier + _flashPoint.x);
-					rect.index = _data[columnIndex];
+				if (_rects[columnIndex] == null) {
+					
+					var rx:Float = (_data[columnIndex] - _startingIndex) * _tileWidth;
+					var ry:Float = 0;
+					
+					if (rx >= _tileWidth)
+					{
+						ry = Std.int(rx / _tileWidth) * (_tileDepth + _tileHeight);
+						rx %= _tileWidth;
+					}
+					_rects[columnIndex] = new IsoRect(rx + _flashPoint.x, ry + _flashPoint.y, _tileWidth, _tileDepth + _tileHeight, null);
+					
+					//TODO: Experimenting with depthModifier var. Remove this and allow depthModifier to be set through setTileProperties()
+					if (_data[columnIndex] == 0 || _data[columnIndex] == 1) {
+						_rects[columnIndex].depthModifier = 500;
+					} else {
+						_rects[columnIndex].depthModifier = 1000;
+					}
+					
+					
+					#if FLX_RENDER_TILE
+					_rects[columnIndex].index = framesData.frames[_data[columnIndex] - _startingIndex].tileID;
+					_rectIDs[columnIndex] = framesData.frames[_data[columnIndex] - _startingIndex].tileID;
+					#end
+					
+					if (_rects[columnIndex].depth == -1) {
+						_rects[columnIndex].setIso(_flashPoint.x, _flashPoint.y);
+						_rects[columnIndex].depth = Std.int(_flashPoint.y * _rects[columnIndex].depthModifier + _flashPoint.x);
+						_rects[columnIndex].index = _data[columnIndex];
+					}
+					
+					//trace( "rect : " + _rects[columnIndex].toString() );
 				}
 				
 				column++;
@@ -370,6 +399,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			rowIndex += widthInTiles;
 			row++;
 		}
+		
+		trace( "_rects : " + _rects.length );
 	}
 	
 	/**
@@ -993,6 +1024,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
 		
 		var tile:FlxIsoTile;
+		var frame:FlxFrame;
 		
 		#if !FLX_NO_DEBUG
 		var debugTile:BitmapData;
@@ -1015,13 +1047,18 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				tileID = _rectIDs[i];
 				#end
 				
+				tile = _tileObjects[_flashRect.index];
+				frame = tile.frame;
+				//trace( "frame : " + frame.getBitmap().rect.toString() );
+				
 				if (isTileOnScreen(drawPt, Camera, _scaledTileWidth, _scaledTileDepth, _scaledTileHeight))
 				{
+					//trace("Drawing tile at pt : " + drawPt.toString());
 					#if FLX_RENDER_BLIT
 					if (_flashRect.sprite == null) 
 					{
 						//Buffer.pixels.copyPixels(cachedGraphics.bitmap, _flashRect, drawPt, null, null, true);
-						Buffer.pixels.copyPixels(graphic.bitmap, _flashRect, drawPt, null, null, true);
+						Buffer.pixels.copyPixels(frame.getBitmap(), _flashRect, drawPt, null, null, true);
 					} else {
 						_flashRect.sprite.draw();
 						Buffer.pixels.copyPixels(_flashRect.sprite.framePixels, _flashRect, drawPt, null, null, true);
@@ -1122,42 +1159,20 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	override private function updateTile(Index:Int):Void
 	{
 		var tile:FlxIsoTile = _tileObjects[Index];
+		//var tile:FlxIsoTile = _tileObjects[_data[Index]];
 		
 		if ((tile == null) || !tile.visible)
 		{
-			_rects[Index] = null;
+/*			_rects[Index] = null;
 			#if FLX_RENDER_TILE
 			_rectIDs[Index] = -1;
-			#end
+			#end*/
 			
 			return;
 		}
 		
-		trace("trying to get tile frame : " + Std.int(Index - _startingIndex));
 		
 		tile.frame = frames.frames[Index - _startingIndex];
-		
-		var rx:Float = (_data[Index] - _startingIndex) * _tileWidth;
-		var ry:Float = 0;
-		
-		if (rx >= tile.frame.frame.width)
-		{
-			ry = Std.int(rx / tile.frame.frame.width) * (_tileDepth + _tileHeight);
-			rx %= tile.frame.frame.width;
-		}
-		_rects[Index] = new IsoRect(rx + tile.frame.frame.x, ry + tile.frame.frame.y, _tileWidth, _tileDepth + _tileHeight, null);
-		
-		//TODO: Experimenting with depthModifier var. Remove this and allow depthModifier to be set through setTileProperties()
-		if (_data[Index] == 0 || _data[Index] == 1) {
-			_rects[Index].depthModifier = 500;
-		} else {
-			_rects[Index].depthModifier = 1000;
-		}
-		
-		#if FLX_RENDER_TILE
-		_rects[Index].index = framesData.frames[_data[Index] - _startingIndex].tileID;
-		_rectIDs[Index] = framesData.frames[_data[Index] - _startingIndex].tileID;
-		#end
 	}
 	
 	private inline function createBuffer(camera:FlxCamera):FlxIsoTilemapBuffer

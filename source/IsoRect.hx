@@ -32,4 +32,9 @@ class IsoRect extends Rectangle
 		isoPos.y = y;
 	}
 	
+	override public function toString():String
+	{
+		return "IsoRect '" + index + "' - pos : " + isoPos.toString() + " - depth : " + depth + " - modifier : " + depthModifier + " - sprite : " + sprite;
+	}
+	
 }

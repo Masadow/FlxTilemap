@@ -8,6 +8,7 @@ import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.tile.FlxBaseTilemap.FlxTilemapAutoTiling;
 import flixel.util.FlxTimer;
+import openfl.Assets;
 import tile.FlxIsoTilemap;
 import tile.FlxIsoTilemap;
 
@@ -32,11 +33,14 @@ class PlayState extends FlxState
 		FlxG.debugger.visible = true;
 		
 		//Map generator
+		mapWidth = 32;
+		mapHeight = 32;
+		
 /*		mapWidth = 42;
 		mapHeight = 42;*/
 		
-		mapWidth = 65;
-		mapHeight = 65;
+/*		mapWidth = 65;
+		mapHeight = 65;*/
 		
 		mapGen = new MapGenerator(mapWidth, mapHeight, 3, 5, 11, false);
 		mapGen.setIndices(9, 8, 10, 11, 14, 16, 17, 15, 7, 5, 1, 1, 0);
@@ -59,15 +63,10 @@ class PlayState extends FlxState
 		
 		//Isometric tilemap
 		map = new FlxIsoTilemap();
-		//map.widthInTiles = mapWidth;
-		//map.heightInTiles = mapHeight;
 		map._tileDepth = 24;
-		//map.loadMap(flixelMapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
-		//map.loadMapFromArray(flixelMapData, mapWidth, mapHeight, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.loadMapFrom2DArray(mapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
-		//map.adjustTiles();
-		var timer = new FlxTimer(2, function (t:FlxTimer) { map.adjustTiles(); } );
-		//map.setTileProperties(2, FlxObject.ANY, null, null, 16);
+		map.adjustTiles();
+		map.setTileProperties(2, FlxObject.ANY, null, null, 16);
 		map.camera.antialiasing = true;
 		add(map);
 		
