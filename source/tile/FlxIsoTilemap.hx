@@ -163,6 +163,11 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 */
 	private var drawPt:Point;
 	
+	//Helper to store tile frame rect (will always be 0,0,tileWidth,tileDepth + tileHeight)
+	private var frameRect:Rectangle;
+	
+	var hasDrawn:Bool = false;
+	
 	/**
 	 * The tilemap constructor just initializes some basic variables.
 	 */
@@ -175,7 +180,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_buffers = new Array<FlxIsoTilemapBuffer>();
 		_flashPoint = new Point();
 		_flashRect = new IsoRect(0, 0, 0, 0, null);
-		
 		#if FLX_RENDER_TILE
 		_helperPoint = new Point();
 		_matrix = new FlxMatrix();
@@ -312,6 +316,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		// Then go through and create the actual map
 		width = widthInTiles * _scaledTileWidth;
 		height = heightInTiles * (_scaledTileDepth + _scaledTileHeight);
+		
+		frameRect = new Rectangle(0, 0, _tileWidth, _tileDepth + _tileHeight);
 	}
 	
 	override private function updateMap():Void 
@@ -1032,9 +1038,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		var totalRects:Int = _rects.length;
 		
-		//BUG: Total Rects are just 18 - There must be some confusion
-		//between the number of tiles in the tileset and the total number of tiles
-		
 		for (i in 0...totalRects)
 		{
 			_flashRect = _rects[i];
@@ -1057,8 +1060,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					#if FLX_RENDER_BLIT
 					if (_flashRect.sprite == null) 
 					{
-						//Buffer.pixels.copyPixels(cachedGraphics.bitmap, _flashRect, drawPt, null, null, true);
-						Buffer.pixels.copyPixels(frame.getBitmap(), _flashRect, drawPt, null, null, true);
+						Buffer.pixels.copyPixels(frame.getBitmap(), frameRect, drawPt, null, null, true);
 					} else {
 						_flashRect.sprite.draw();
 						Buffer.pixels.copyPixels(_flashRect.sprite.framePixels, _flashRect, drawPt, null, null, true);
