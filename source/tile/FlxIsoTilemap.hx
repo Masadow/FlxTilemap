@@ -382,11 +382,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					}
 					
 					
-					#if FLX_RENDER_TILE
-					_rects[columnIndex].index = framesData.frames[_data[columnIndex] - _startingIndex].tileID;
-					_rectIDs[columnIndex] = framesData.frames[_data[columnIndex] - _startingIndex].tileID;
-					#end
-					
 					if (_rects[columnIndex].depth == -1) {
 						_rects[columnIndex].setIso(_flashPoint.x, _flashPoint.y);
 						_rects[columnIndex].depth = Std.int(_flashPoint.y * _rects[columnIndex].depthModifier + _flashPoint.x);
@@ -1047,11 +1042,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			{
 				drawPt.x = _flashRect.isoPos.x - _point.x;
 				drawPt.y = _flashRect.isoPos.y + _point.y;
-				
-				#if FLX_RENDER_TILE
-				tileID = _rectIDs[i];
-				#end
-				
+
 				tile = _tileObjects[_flashRect.index];
 				frame = tile.frame;
 				//trace( "frame : " + frame.getBitmap().rect.toString() );
@@ -1068,19 +1059,20 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						Buffer.pixels.copyPixels(_flashRect.sprite.framePixels, _flashRect, drawPt, null, null, true);
 					}
 					#else
-						currDrawData[currIndex++] = drawPt.x;
-						currDrawData[currIndex++] = drawPt.y;
-						currDrawData[currIndex++] = _flashRect.index;
+						_matrix.identity();
 						
-						// Tilemap tearing hack
-						currDrawData[currIndex++] = hackScaleX; 
-						currDrawData[currIndex++] = 0;
-						currDrawData[currIndex++] = 0;
-						// Tilemap tearing hack
-						currDrawData[currIndex++] = hackScaleY; 
+						if (frame.angle != FlxFrameAngle.ANGLE_0)
+						{
+							frame.prepareFrameMatrix(_matrix);
+						}
 						
-						// Alpha
-						currDrawData[currIndex++] = 1.0;
+						_matrix.scale(hackScaleX, hackScaleY);
+					
+						
+						_point.set(drawPt.x, drawPt.y);
+						
+						drawItem = Camera.getDrawStackItem(graphic, isColored, _blendInt);
+						drawItem.setDrawData(_point, frame.tileID, _matrix, isColored, color, alpha);
 					#end
 					
 					#if (FLX_RENDER_BLIT && !FLX_NO_DEBUG)
@@ -1123,10 +1115,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		#end
 		
 		Buffer.dirty = false;
-		
-		#if FLX_RENDER_TILE
-		drawItem.position = currIndex;
-		#end
 	}
 	
 	/**
