@@ -515,20 +515,27 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var drawY:Float;
 		
 		var rectWidth:Float = _scaledTileWidth * Camera.totalScaleX;
-		var rectHeight:Float = _scaledTileHeight * Camera.totalScaleY;
+		var rectHeight:Float = (_scaledTileDepth + _scaledTileHeight) * Camera.totalScaleY;
+		
+		//Copied from drawTilemap
+		var scaleX:Float = scale.x * Camera.totalScaleX;
+		var scaleY:Float = scale.y * Camera.totalScaleY;
+		var hackScaleX:Float = tileScaleHack * scaleX;
+		var hackScaleY:Float = tileScaleHack * scaleY;
 	
 		// Copy tile images into the tile buffer
 		// Modified from getScreenXY()
 		_point.x = (Camera.scroll.x * scrollFactor.x) - x; 
 		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
+		
 		var screenXInTiles:Int = Math.floor(_point.x / _scaledTileWidth);
-		var screenYInTiles:Int = Math.floor(_point.y / _scaledTileDepth);
+		var screenYInTiles:Int = Math.floor(_point.y / (_scaledTileDepth + _scaledTileHeight));
 		var screenRows:Int = buffer.rows;
 		var screenColumns:Int = buffer.columns;
 		
 		// Bound the upper left corner
 		screenXInTiles = Std.int(FlxMath.bound(screenXInTiles, 0, widthInTiles - screenColumns));
-		screenYInTiles = Std.int(FlxMath.bound(screenYInTiles, 0, heightInTiles - screenRows));
+		screenYInTiles = Std.int(FlxMath.bound(screenYInTiles, 0, (_scaledTileDepth + _scaledTileHeight) - screenRows));
 		
 		var rowIndex:Int = screenYInTiles * widthInTiles + screenXInTiles;
 		var columnIndex:Int;
@@ -537,8 +544,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		var totalRects:Int = _rects.length;
 		for (i in 0...totalRects) {
-			drawX = _rects[i].isoPos.x - _point.x;
-			drawY = _rects[i].isoPos.y + _point.y;
+			drawX = (_rects[i].isoPos.x - _point.x) - _scaledTileWidth / 2;
+			drawY = (_rects[i].isoPos.y + _point.y) - (_scaledTileDepth + _scaledTileHeight) / 2;
 			
 			tile = _tileObjects[_rects[i].index];
 			
@@ -560,7 +567,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				// Copied from makeDebugTile
 				var gfx:Graphics = Camera.debugLayer.graphics;
 				gfx.lineStyle(1, debugColor, 0.5);
-				gfx.drawRect(drawX, drawY, _scaledTileWidth, _scaledTileDepth + _scaledTileHeight);
+				gfx.drawRect(drawX * hackScaleX, drawY * hackScaleY, rectWidth, rectHeight);
 			}
 		}
 		#end
