@@ -1005,12 +1005,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_helperPoint.x = isPixelPerfectRender(Camera) ? Math.floor(_helperPoint.x) : _helperPoint.x;
 		_helperPoint.y = isPixelPerfectRender(Camera) ? Math.floor(_helperPoint.y) : _helperPoint.y;
 		
-		var drawX:Float;
-		var drawY:Float;
-		
-		var scaledWidth:Float = _scaledTileWidth * Camera.totalScaleX;
-		var scaledHeight:Float = _scaledTileHeight * Camera.totalScaleY;
-		
 		var scaleX:Float = scale.x * Camera.totalScaleX;
 		var scaleY:Float = scale.y * Camera.totalScaleY;
 		
@@ -1045,11 +1039,9 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 
 				tile = _tileObjects[_flashRect.index];
 				frame = tile.frame;
-				//trace( "frame : " + frame.getBitmap().rect.toString() );
 				
 				if (isTileOnScreen(drawPt, Camera, _scaledTileWidth, _scaledTileDepth, _scaledTileHeight))
 				{
-					//trace("Drawing tile at pt : " + drawPt.toString());
 					#if FLX_RENDER_BLIT
 					if (_flashRect.sprite == null) 
 					{
@@ -1058,6 +1050,34 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						_flashRect.sprite.draw();
 						Buffer.pixels.copyPixels(_flashRect.sprite.framePixels, _flashRect, drawPt, null, null, true);
 					}
+					
+						#if !FLX_NO_DEBUG
+						if (FlxG.debugger.drawDebug && !ignoreDrawDebug) 
+						{
+							tile = _tileObjects[_flashRect.index];
+							
+							if (tile != null)
+							{
+								if (tile.allowCollisions <= FlxObject.NONE)
+								{
+									// Blue
+									debugTile = _debugTileNotSolid; 
+								}
+								else if (tile.allowCollisions != FlxObject.ANY)
+								{
+									// Pink
+									debugTile = _debugTilePartial; 
+								}
+								else
+								{
+									// Green
+									debugTile = _debugTileSolid; 
+								}
+								
+								Buffer.pixels.copyPixels(debugTile, _debugRect, drawPt, null, null, true);
+							}
+						}
+						#end
 					#else
 						_matrix.identity();
 						
@@ -1067,40 +1087,12 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						}
 						
 						_matrix.scale(hackScaleX, hackScaleY);
-					
-						
-						_point.set(drawPt.x, drawPt.y);
 						
 						drawItem = Camera.getDrawStackItem(graphic, isColored, _blendInt);
-						drawItem.setDrawData(_point, frame.tileID, _matrix, isColored, color, alpha);
-					#end
-					
-					#if (FLX_RENDER_BLIT && !FLX_NO_DEBUG)
-					if (FlxG.debugger.drawDebug && !ignoreDrawDebug) 
-					{
-						tile = _tileObjects[_flashRect.index];
 						
-						if (tile != null)
-						{
-							if (tile.allowCollisions <= FlxObject.NONE)
-							{
-								// Blue
-								debugTile = _debugTileNotSolid; 
-							}
-							else if (tile.allowCollisions != FlxObject.ANY)
-							{
-								// Pink
-								debugTile = _debugTilePartial; 
-							}
-							else
-							{
-								// Green
-								debugTile = _debugTileSolid; 
-							}
-							
-							Buffer.pixels.copyPixels(debugTile, _debugRect, drawPt, null, null, true);
-						}
-					}
+						//Almost working - there seems to be -/+ 1 tile missing from the last row (bottom) and last col (right)
+						//TODO: Fix debug tile drawing in cpp
+						drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.index, _matrix, isColored, color, alpha);
 					#end
 				}
 			}

@@ -30,7 +30,8 @@ class PlayState extends FlxState
 		super.create();
 		
 		FlxG.log.redirectTraces = false;
-		FlxG.debugger.visible = true;
+		//FlxG.debugger.visible = true;
+		FlxG.debugger.drawDebug = true;
 		
 		//Map generator
 		mapWidth = 32;
@@ -101,6 +102,9 @@ class PlayState extends FlxState
 			char.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 			map.add(char);
 		}*/
+		
+		
+		trace("Current camera scale : " + FlxG.camera.scaleX + "," + FlxG.camera.scaleY);
 	}
 	
 	/**
