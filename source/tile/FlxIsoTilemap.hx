@@ -1043,7 +1043,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			{
 				drawPt.x = _flashRect.isoPos.x - _point.x;
 				drawPt.y = _flashRect.isoPos.y + _point.y;
-
+				
+				
 				tile = _tileObjects[_flashRect.index];
 				frame = tile.frame;
 				
@@ -1097,7 +1098,14 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						
 						drawItem = Camera.getDrawStackItem(graphic, isColored, _blendInt);
 						
-						drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.index, _matrix, isColored, color, alpha);
+						//Chars
+						if (_flashRect.sprite != null) {
+							_flashRect.sprite.draw();
+							var charDrawItem = Camera.getDrawStackItem(_flashRect.sprite.frame.parent, isColored, _blendInt);
+							charDrawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.sprite.frame.tileID, _matrix, isColored, color, alpha);
+						} else {
+							drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.index, _matrix, isColored, color, alpha);
+						}
 					#end
 				}
 			}

@@ -30,8 +30,7 @@ class PlayState extends FlxState
 		super.create();
 		
 		FlxG.log.redirectTraces = false;
-		//FlxG.debugger.visible = true;
-		FlxG.debugger.drawDebug = true;
+		FlxG.debugger.drawDebug = false;
 		
 		//Map generator
 		mapWidth = 32;
@@ -48,19 +47,12 @@ class PlayState extends FlxState
 		mapGen.generate();
 		
 		//Shows the minimap
-/*		var minimap = mapGen.showMinimap(FlxG.stage, 6, MapAlign.TopLeft);
-		minimap.y += 10;
+		var minimap = mapGen.showMinimap(FlxG.stage, 3, MapAlign.TopLeft);
 		FlxG.addChildBelowMouse(minimap);
-		mapGen.showColorCodes();*/
+		mapGen.showColorCodes();
 		
-		//Getting data from map generator and conforming it to flixel format
+		//Getting data from generator
 		var mapData:Array<Array<Int>> = mapGen.extractData();
-		var flixelMapData:Array<Int> = new Array<Int>();
-		for (i in 0...mapData.length) {
-			for (j in 0...mapData[i].length) {
-				flixelMapData.push(mapData[i][j]);
-			}
-		}
 		
 		//Isometric tilemap
 		map = new FlxIsoTilemap();
@@ -72,21 +64,21 @@ class PlayState extends FlxState
 		add(map);
 		
 		//Adding FlxIsoSprite to the map (WARNING: Currently working on Flash and HTML5 only!)
-		#if (flash || html5)
-/*		var charA = new FlxIsoSprite(0, 0, false);
+		var charA = new FlxIsoSprite(0, 0, false);
 		map.add(charA);
 		var initialTile:IsoRect = map.getIsoRectAt(3 * mapWidth + 3);
-		charA.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);*/
-		#end
+		charA.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 		
 		var text:String = "";
 		#if (flash || cpp || neko)
-		text = "ARROWS to move the sprite\nWASD to scroll the map\nSPACE to reset state";
+		text = "ARROWS - Move player | WASD - scroll map | SPACE - reset | ENTER - Spawn chars";
 		#else
-		text = "ARROWS to move the sprite | WASD to scroll the map | SPACE to reset state";
+		text = "ARROWS - Move player | WASD - scroll map | SPACE - reset | ENTER - Spawn chars";
 		#end
 		
-		var instructions:FlxText = new FlxText(275, 20, 300, text, 16);
+		var textPos = minimap.x + minimap.width + 10;
+		var textWidth = 1280 - minimap.width - 30;
+		var instructions:FlxText = new FlxText(textPos, 10, textWidth, text, 14);
 		instructions.scrollFactor.set(0, 0);
 		add(instructions);
 		
@@ -102,7 +94,6 @@ class PlayState extends FlxState
 			char.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 			map.add(char);
 		}*/
-		
 		
 		trace("Current camera scale : " + FlxG.camera.scaleX + "," + FlxG.camera.scaleY);
 	}
@@ -121,10 +112,10 @@ class PlayState extends FlxState
 	 */
 	override public function update(elapsed:Float):Void
 	{
+		super.update(elapsed);
+		
 		//TODO: Make collision work
 		//FlxG.collide(map, map.spriteGroup, onMapCollide);
-		
-		super.update(elapsed);
 			
 		if (FlxG.keys.pressed.A)
 			FlxG.camera.scroll.x -= 300 * FlxG.elapsed;
@@ -143,8 +134,6 @@ class PlayState extends FlxState
 			for (i in 0...10)
 			{
 				var char = new FlxIsoSprite(0, 0, true);
-				//var startRow:Int = FlxRandom.intRanged(3, mapHeight);
-				//var startCol:Int = FlxRandom.intRanged(3, mapWidth);
 				var startRow:Int = Std.int(mapHeight / 2);
 				var startCol:Int = Std.int(mapWidth / 2);
 				var initialTile:IsoRect = map.getIsoRectAt(startRow * startCol);
@@ -153,6 +142,7 @@ class PlayState extends FlxState
 			}
 		}
 		
+		//Debug logging (neko || cpp)
 		if (FlxG.keys.justPressed.T) {
 			var log:String = "";
 			var rects:Array<IsoRect> = map._rects.copy();

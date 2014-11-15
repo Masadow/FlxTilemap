@@ -56,6 +56,7 @@ class FlxIsoSprite extends FlxSprite
 		
 		isoRect = new IsoRect(this.x, this.y, this.width, this.height, this);
 		isoRect.depthModifier = 1000;
+		isoRect.index = 0;
 		
 		controller = automaton ? handleMovement : handleInput;
 		

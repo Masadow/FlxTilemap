@@ -1,25 +1,27 @@
 FlxTilemap
 ==========
 
-### Features to implements
+### Features to Implement
 
- * Heights / Slopes maybe?
- * Bridge implementation
+ * Heights
+ * Slopes
+ * Bridges
+ * Bigger-than-tile objects;
 
-### Bugs
+### Known Bugs
 
  * Adjust mouse clicking / pathfinding;
  * Collisions (check and adjust as necessary);
- * Bigger-than-tile objects;
 
 ### Targets
 
  * [x] flash
  * [ ] html5
- * [ ] desktop
+ * [x] desktop
  * [ ] android
  * [ ] ios
 
 ### Misc
 
- * Performance optimization?
+ * Sorting optimization - Currently sorting the entire tilemap (huge impact on performance)
+ * General performance improvement
