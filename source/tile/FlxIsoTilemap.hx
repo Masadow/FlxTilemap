@@ -1047,7 +1047,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				tile = _tileObjects[_flashRect.index];
 				frame = tile.frame;
 				
-				if (isTileOnScreen(drawPt, Camera, _scaledTileWidth, _scaledTileDepth, _scaledTileHeight))
+				if (tile != null && tile.visible && tile.frame.type != FlxFrameType.EMPTY)
 				{
 					#if FLX_RENDER_BLIT
 					if (_flashRect.sprite == null) 
@@ -1097,8 +1097,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						
 						drawItem = Camera.getDrawStackItem(graphic, isColored, _blendInt);
 						
-						//Almost working - there seems to be -/+ 1 tile missing from the last row (bottom) and last col (right)
-						//TODO: Fix debug tile drawing in cpp
 						drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.index, _matrix, isColored, color, alpha);
 					#end
 				}
@@ -1114,17 +1112,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		#end
 		
 		Buffer.dirty = false;
-	}
-	
-	/**
-	 * Simple check to see if a tile in on screen
-	 * @param	pos	Position of the tile in pixels
-	 * @param	cam	Current camera
-	 * @return	True if the tile is inside the screen, false otherwise
-	 */
-	private static inline function isTileOnScreen(pos:Point, cam:FlxCamera, w:Float, d:Float, h:Float):Bool
-	{
-		return ((pos.x > (cam.x - w) && pos.x < cam.width) && (pos.y > (cam.y - (d + h)) && pos.y < cam.height));
 	}
 	
 	/**
