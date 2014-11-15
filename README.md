@@ -16,10 +16,10 @@ FlxTilemap
 ### Targets
 
  * [x] flash
- * [ ] html5
- * [x] desktop
- * [ ] android
- * [ ] ios
+ * [x] html5 (must disable openfl-bitfive html5 backend)
+ * [x] desktop (cpp & neko)
+ * [x] android
+ * [ ] ios (should work, test needed)
 
 ### Misc
 

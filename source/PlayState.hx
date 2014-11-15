@@ -5,11 +5,9 @@ import coffeegames.mapgen.MapGenerator;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxState;
+import flixel.math.FlxPoint;
 import flixel.text.FlxText;
 import flixel.tile.FlxBaseTilemap.FlxTilemapAutoTiling;
-import flixel.util.FlxTimer;
-import openfl.Assets;
-import tile.FlxIsoTilemap;
 import tile.FlxIsoTilemap;
 
 /**
@@ -21,6 +19,10 @@ class PlayState extends FlxState
 	var mapHeight:Int;
 	var mapWidth:Int;
 	var map:FlxIsoTilemap;
+	var initial:flixel.math.FlxPoint;
+	var final:flixel.math.FlxPoint;
+	var isPressed:Bool;
+	var charA:FlxIsoSprite;
 	
 	/**
 	 * Function that is called up when to state is created to set it up. 
@@ -59,21 +61,21 @@ class PlayState extends FlxState
 		map._tileDepth = 24;
 		map.loadMapFrom2DArray(mapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.adjustTiles();
-		map.setTileProperties(2, FlxObject.ANY, null, null, 16);
+		map.setTileProperties(2, FlxObject.ANY, onMapCollide, null, 16);
 		map.camera.antialiasing = true;
 		add(map);
 		
 		//Adding FlxIsoSprite to the map (WARNING: Currently working on Flash and HTML5 only!)
-		var charA = new FlxIsoSprite(0, 0, false);
+		charA = new FlxIsoSprite(0, 0, false);
 		map.add(charA);
 		var initialTile:IsoRect = map.getIsoRectAt(3 * mapWidth + 3);
 		charA.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 		
 		var text:String = "";
-		#if (flash || cpp || neko)
-		text = "ARROWS - Move player | WASD - scroll map | SPACE - reset | ENTER - Spawn chars";
-		#else
-		text = "ARROWS - Move player | WASD - scroll map | SPACE - reset | ENTER - Spawn chars";
+		#if (web || desktop)
+		text = "ARROWS - Move player | WASD - Scroll map | SPACE - reset | ENTER - Spawn chars";
+		#elseif (ios || android)
+		text = "TOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position (Soon)";
 		#end
 		
 		var textPos = minimap.x + minimap.width + 10;
@@ -82,20 +84,8 @@ class PlayState extends FlxState
 		instructions.scrollFactor.set(0, 0);
 		add(instructions);
 		
-		//Adds 10 autonomous moving chars
-/*		for (i in 0...10)
-		{
-			var char = new FlxIsoSprite(0, 0, true);
-			//var startRow:Int = FlxRandom.intRanged(3, mapHeight);
-			//var startCol:Int = FlxRandom.intRanged(3, mapWidth);
-			var startRow:Int = Std.int(mapHeight / 2);
-			var startCol:Int = Std.int(mapWidth / 2);
-			var initialTile:IsoRect = map.getIsoRectAt(startRow * startCol);
-			char.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
-			map.add(char);
-		}*/
-		
-		trace("Current camera scale : " + FlxG.camera.scaleX + "," + FlxG.camera.scaleY);
+		initial = FlxPoint.get(0, 0);
+		final = FlxPoint.get(0, 0);
 	}
 	
 	/**
@@ -116,7 +106,17 @@ class PlayState extends FlxState
 		
 		//TODO: Make collision work
 		//FlxG.collide(map, map.spriteGroup, onMapCollide);
-			
+		//map.overlaps(map.spriteGroup);
+		
+		#if (desktop || web)
+		handleInput(elapsed);
+		#elseif (android || ios)
+		handleTouchInput(elapsed);
+		#end
+	}
+	
+	function handleInput(elapsed:Float)
+	{
 		if (FlxG.keys.pressed.A)
 			FlxG.camera.scroll.x -= 300 * FlxG.elapsed;
 		if (FlxG.keys.pressed.D)
@@ -131,6 +131,7 @@ class PlayState extends FlxState
 		}
 		
 		if (FlxG.keys.justPressed.ENTER) {
+			//Adds 10 automatons
 			for (i in 0...10)
 			{
 				var char = new FlxIsoSprite(0, 0, true);
@@ -159,15 +160,48 @@ class PlayState extends FlxState
 			trace(log);
 			#end
 		}
-		
-		if (FlxG.keys.justPressed.Y) {
-			//trace("onRects length : " + map.onRects.length);
-			//trace("offRects length : " + map.offRects.length);
-		}
-	}	
+	}
 	
-/*	function onMapCollide(objA:Dynamic, objB:Dynamic):Void
+	function handleTouchInput(elapsed:Float)
 	{
-		trace("Just collided!");
-	}*/
+		if (FlxG.mouse.justPressed) {
+			initial = FlxG.mouse.getScreenPosition();
+		}
+		
+		if (FlxG.mouse.justReleased) {
+			final = FlxG.mouse.getScreenPosition();
+			if (final.distanceTo(initial) < 2) {
+				//Move char to tile
+				trace("Will move char to tile with index '" + map.getTileIndexByCoords(FlxG.mouse.getWorldPosition()) + "'");
+				
+				//TODO: Modify FlxIsoSprite to allow the 'setDestination' method to receive a tile (or point)
+			}
+		}
+		
+		if (FlxG.mouse.pressed) {
+			var pt = FlxG.mouse.getScreenPosition();
+			if (pt.x > initial.x) {
+				var amount = pt.x - initial.x;
+				FlxG.camera.scroll.x -= amount * elapsed;
+			} else {
+				var amount = initial.x - pt.x;
+				FlxG.camera.scroll.x += amount * elapsed;
+			}
+				
+			if (pt.y > initial.y) {
+				var amount = pt.y - initial.y;
+				FlxG.camera.scroll.y += amount * elapsed;
+			} else {
+				var amount = initial.y - pt.y;
+				FlxG.camera.scroll.y -= amount * elapsed;
+			}
+		}
+	}
+	
+	function onMapCollide(objA:Dynamic, objB:Dynamic):Void
+	{
+		if (objB.allowCollisions == FlxObject.ANY) {
+			trace("Collided with wall tile");
+		}
+	}
 }
