@@ -10,8 +10,9 @@ FlxTilemap
 
 ### Known Bugs
 
- * Adjust mouse clicking / pathfinding;
- * Collisions (check and adjust as necessary);
+ * Pathfinding don't work, 'findPath()' returns null;
+ * Floating-point tilemap tearing in Flash (very easy to spot when scrolling the camera);
+ * Collisions not working correctly (callbacks dispatching regardless of position and tile type);
 
 ### Targets
 

@@ -8,6 +8,7 @@ import flixel.FlxState;
 import flixel.math.FlxPoint;
 import flixel.text.FlxText;
 import flixel.tile.FlxBaseTilemap.FlxTilemapAutoTiling;
+import flixel.util.FlxPath;
 import tile.FlxIsoTilemap;
 
 /**
@@ -22,7 +23,7 @@ class PlayState extends FlxState
 	var initial:flixel.math.FlxPoint;
 	var final:flixel.math.FlxPoint;
 	var isPressed:Bool;
-	var charA:FlxIsoSprite;
+	var player:Player;
 	
 	/**
 	 * Function that is called up when to state is created to set it up. 
@@ -34,7 +35,7 @@ class PlayState extends FlxState
 		FlxG.log.redirectTraces = false;
 		FlxG.debugger.drawDebug = false;
 		
-		//Map generator
+		//Map generator pre-defined sizes
 		mapWidth = 32;
 		mapHeight = 32;
 		
@@ -65,25 +66,26 @@ class PlayState extends FlxState
 		map.camera.antialiasing = true;
 		add(map);
 		
-		//Adding FlxIsoSprite to the map (WARNING: Currently working on Flash and HTML5 only!)
-		charA = new FlxIsoSprite(0, 0, false);
-		map.add(charA);
-		var initialTile:IsoRect = map.getIsoRectAt(3 * mapWidth + 3);
-		charA.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
+		//Adding player to map
+		player = new Player(0, 0);
+		map.add(player);
+		var initialTile:IsoContainer = map.getIsoContainerAt(3 * mapWidth + 3);
+		player.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 		
+		//Adding instruction label
 		var text:String = "";
 		#if (web || desktop)
 		text = "ARROWS - Move player | WASD - Scroll map | SPACE - reset | ENTER - Spawn chars";
 		#elseif (ios || android)
 		text = "TOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position (Soon)";
 		#end
-		
 		var textPos = minimap.x + minimap.width + 10;
 		var textWidth = 1280 - minimap.width - 30;
 		var instructions:FlxText = new FlxText(textPos, 10, textWidth, text, 14);
 		instructions.scrollFactor.set(0, 0);
 		add(instructions);
 		
+		//Map mouse / touch scrolling helpers
 		initial = FlxPoint.get(0, 0);
 		final = FlxPoint.get(0, 0);
 	}
@@ -108,11 +110,14 @@ class PlayState extends FlxState
 		//FlxG.collide(map, map.spriteGroup, onMapCollide);
 		//map.overlaps(map.spriteGroup);
 		
-		#if (desktop || web)
+/*		#if (desktop || web)
 		handleInput(elapsed);
 		#elseif (android || ios)
 		handleTouchInput(elapsed);
-		#end
+		#end*/
+		
+		handleInput(elapsed);
+		handleTouchInput(elapsed);
 	}
 	
 	function handleInput(elapsed:Float)
@@ -134,25 +139,25 @@ class PlayState extends FlxState
 			//Adds 10 automatons
 			for (i in 0...10)
 			{
-				var char = new FlxIsoSprite(0, 0, true);
+				var automaton = new Automaton(0, 0);
 				var startRow:Int = Std.int(mapHeight / 2);
 				var startCol:Int = Std.int(mapWidth / 2);
-				var initialTile:IsoRect = map.getIsoRectAt(startRow * startCol);
-				char.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
-				map.add(char);
+				var initialTile:IsoContainer = map.getIsoContainerAt(startRow * startCol);
+				automaton.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
+				map.add(automaton);
 			}
 		}
 		
 		//Debug logging (neko || cpp)
 		if (FlxG.keys.justPressed.T) {
 			var log:String = "";
-			var rects:Array<IsoRect> = map._rects.copy();
+			var rects:Array<IsoContainer> = map._isoContainers.copy();
 			var numRects:Int = rects.length;
 			for (i in 0...numRects)
 			{
-				var rect:IsoRect = rects[i];
+				var rect:IsoContainer = rects[i];
 				log += "rect '" + i + "'\tisoPos : " + rect.isoPos.toString() + "\t| depth : " +
-					rect.depth + "\t| onScreen : " + rect.x + "," + rect.y + " \t| rect : " + rect.toString() + "\n";
+					rect.depth + "\n";
 			}
 			#if (neko || cpp)
 			sys.io.File.saveContent("./log.txt", log);
@@ -170,11 +175,19 @@ class PlayState extends FlxState
 		
 		if (FlxG.mouse.justReleased) {
 			final = FlxG.mouse.getScreenPosition();
-			if (final.distanceTo(initial) < 2) {
-				//Move char to tile
-				trace("Will move char to tile with index '" + map.getTileIndexByCoords(FlxG.mouse.getWorldPosition()) + "'");
+			if (final.distanceTo(initial) < 2 && !player.isWalking) {
 				
-				//TODO: Modify FlxIsoSprite to allow the 'setDestination' method to receive a tile (or point)
+				//TODO: Copy 'findPath' method to FlxIsoTilemap and correctly implement it for iso
+				
+				var wPos = FlxG.mouse.getWorldPosition();
+				trace("Char will move to tile with index '" + map.getTileIndexByCoords(wPos) + "'");
+				
+				//findPath is returning null due to incorrect tile position calculations
+				var points = map.findPath(player.getMidpoint(), wPos);
+				trace( "points : " + points );
+				var path = new FlxPath(player, points);
+				player.isWalking = true;
+				path.onComplete = function (path:FlxPath) { trace("path complete"); player.isWalking = false; };
 			}
 		}
 		

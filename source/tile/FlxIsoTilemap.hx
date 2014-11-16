@@ -10,7 +10,8 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.graphics.FlxGraphic;
-import flixel.graphics.frames.FlxFrame;
+import flixel.graphics.frames.FlxFrame.FlxFrameAngle;
+import flixel.graphics.frames.FlxFrame.FlxFrameType;
 import flixel.graphics.frames.FlxFramesCollection;
 import flixel.graphics.frames.FlxImageFrame;
 import flixel.graphics.frames.FlxTileFrames;
@@ -86,23 +87,24 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	public var blend(default, set):BlendMode = null;
 	
 	/**
-	 * Rendering helper, minimize new object instantiation on repetitive methods.
+	 * Rendering helper, minimize new object instantiation on repetitive methods
+	 * Note: Currently being used only as a (0, 0) point reference in draw() to draw the buffer.
+	 * TODO: Investigate if we can throw this in draw again and stop messing with _point in drawTilemap()
 	 */
 	private var _flashPoint:Point;
 	/**
 	 * Rendering helper, minimize new object instantiation on repetitive methods.
 	 */
-	//private var _flashRect:Rectangle;
-	private var _flashRect:IsoRect;
+	private var _isoObject:IsoContainer;
 	/**
 	 * Internal list of buffers, one for each camera, used for drawing the tilemaps.
 	 */
 	private var _buffers:Array<FlxIsoTilemapBuffer>;
 	
 	/**
-	 * Internal representation of rectangles, one for each tile in the entire tilemap, used to speed up drawing.
+	 * Internal representation of isometric container objects, one for each tile in the entire tilemap, used to store tile information for drawing.
 	 */
-	public var _rects:Array<IsoRect>;
+	public var _isoContainers:Array<IsoContainer>;
 	
 	/**
 	 * Internal, the width of a single tile.
@@ -146,11 +148,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	#end
 	
 	#if FLX_RENDER_TILE
-	/**
-	 * Rendering helper, minimize new object instantiation on repetitive methods. Used only in cpp
-	 */
-	private var _helperPoint:Point;
-	
 	private var _blendInt:Int = 0;
 	
 	private var _matrix:FlxMatrix;
@@ -164,8 +161,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	//Helper to store tile frame rect (will always be 0,0,tileWidth,tileDepth + tileHeight)
 	private var frameRect:Rectangle;
 	
-	var hasDrawn:Bool = false;
-	
 	/**
 	 * The tilemap constructor just initializes some basic variables.
 	 */
@@ -176,10 +171,9 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		drawPt = new Point(0, 0);
 		
 		_buffers = new Array<FlxIsoTilemapBuffer>();
-		_flashPoint = new Point();
-		_flashRect = new IsoRect(0, 0, 0, 0, null);
+		_flashPoint = new Point(0, 0);
+		_isoObject = new IsoContainer(null);
 		#if FLX_RENDER_TILE
-		_helperPoint = new Point();
 		_matrix = new FlxMatrix();
 		#end
 		
@@ -199,7 +193,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	override public function destroy():Void
 	{
 		_flashPoint = null;
-		_flashRect = null;
+		_isoObject = null;
 		var i:Int = 0;
 		var l:Int;
 		
@@ -214,7 +208,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_debugTileSolid = null;
 		#end
 		#else
-		_helperPoint = null;
 		_matrix = null;
 		#end
 		
@@ -239,7 +232,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		{
 			_tileWidth = Std.int(value.frames[0].sourceSize.x);
 			_tileHeight = Std.int(value.frames[0].sourceSize.y);
-			_flashRect.setTo(0, 0, _tileWidth, _tileDepth + _tileHeight);
 			graphic = value.parent;
 			postGraphicLoad();
 		}
@@ -257,7 +249,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		}
 		
 		var graph:FlxGraphic = FlxG.bitmap.add(cast TileGraphic);
-		trace( "graph : " + graph.width + " x " + graph.height );
+		
 		// Figure out the size of the tiles
 		_tileWidth = TileWidth;
 		
@@ -280,7 +272,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		}
 		
 		frames = FlxTileFrames.fromGraphic(graph, new FlxPoint(_tileWidth, _tileDepth + _tileHeight));
-		//trace( "frames : " + frames );
 	}
 	
 	override private function initTileObjects():Void 
@@ -320,8 +311,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	
 	override private function updateMap():Void 
 	{
-		_rects = new Array<IsoRect>();
-		FlxArrayUtil.setLength(_rects, totalTiles);
+		_isoContainers = new Array<IsoContainer>();
+		FlxArrayUtil.setLength(_isoContainers, totalTiles);
 		
 		#if (!FLX_NO_DEBUG && FLX_RENDER_BLIT)
 		_debugRect = new Rectangle(0, 0, _tileWidth, (_tileDepth + _tileHeight));
@@ -337,7 +328,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	
 	/**
 	 * Must be called after loadMap to set the values and initial
-	 * position of the tiles` IsoRects.
+	 * position of the tiles` IsoContainers.
 	 */
 	public function adjustTiles():Void
 	{
@@ -345,61 +336,56 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var column = 0;
 		var rowIndex = 0;
 		var columnIndex = 0;
-		var _flashPoint = new Point(0, 0);
+		var isoPoint = new Point(0, 0);
 		
 		while (row < heightInTiles)
 		{
 			columnIndex = rowIndex;
 			column = 0;
 			
-			_flashPoint.x = heightInTiles * _scaledTileWidth / 2 - (_scaledTileWidth / 2 * (row + 1));
-			_flashPoint.y = row * (_scaledTileDepth / 2);
+			isoPoint.x = heightInTiles * _scaledTileWidth / 2 - (_scaledTileWidth / 2 * (row + 1));
+			isoPoint.y = row * (_scaledTileDepth / 2);
 			
 			while (column < widthInTiles)
 			{
-				_flashPoint.x += _scaledTileWidth / 2;
-				_flashPoint.y += _scaledTileDepth / 2;
+				isoPoint.x += _scaledTileWidth / 2;
+				isoPoint.y += _scaledTileDepth / 2;
 				
-				if (_rects[columnIndex] == null) {
+				if (_isoContainers[columnIndex] == null) {
 					
-					var rx:Float = (_data[columnIndex] - _startingIndex) * _tileWidth;
-					var ry:Float = 0;
-					
-					if (rx >= _tileWidth)
-					{
-						ry = Std.int(rx / _tileWidth) * (_tileDepth + _tileHeight);
-						rx %= _tileWidth;
-					}
-					_rects[columnIndex] = new IsoRect(rx + _flashPoint.x, ry + _flashPoint.y, _tileWidth, _tileDepth + _tileHeight, null);
+					_isoContainers[columnIndex] = new IsoContainer(null);
 					
 					//TODO: Experimenting with depthModifier var. Remove this and allow depthModifier to be set through setTileProperties()
 					if (_data[columnIndex] == 0 || _data[columnIndex] == 1) {
-						_rects[columnIndex].depthModifier = 500;
+						_isoContainers[columnIndex].depthModifier = 500;	//Floor tiles
 					} else {
-						_rects[columnIndex].depthModifier = 1000;
+						_isoContainers[columnIndex].depthModifier = 1000;	//Wall tiles
 					}
 					
+					//Storing isometric position for tiles
+					_isoContainers[columnIndex].setIso(isoPoint.x, isoPoint.y);
 					
-					if (_rects[columnIndex].depth == -1) {
-						_rects[columnIndex].setIso(_flashPoint.x, _flashPoint.y);
-						_rects[columnIndex].depth = Std.int(_flashPoint.y * _rects[columnIndex].depthModifier + _flashPoint.x);
-						_rects[columnIndex].index = _data[columnIndex];
-					}
+					//Calculating and storing sorting depth
+					_isoContainers[columnIndex].depth = Std.int(isoPoint.y * _isoContainers[columnIndex].depthModifier + isoPoint.x);
 					
-					//trace( "rect : " + _rects[columnIndex].toString() );
+					//Storing tile type (index relative to its position inside the tileset)
+					_isoContainers[columnIndex].index = _data[columnIndex];
+					
+					//Storing column and row position
+					_isoContainers[columnIndex].setMap(column, row);
 				}
 				
 				column++;
 				columnIndex++;
 			}
 			
-			_flashPoint.y += (_tileDepth + _tileHeight);
+			isoPoint.y += (_tileDepth + _tileHeight);
 			
 			rowIndex += widthInTiles;
 			row++;
 		}
 		
-		trace( "_rects : " + _rects.length );
+		trace( "_isoContainers : " + _isoContainers.length );
 	}
 	
 	/**
@@ -410,7 +396,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 */
 	public function add(Sprite:FlxIsoSprite):Void
 	{
-		_rects.push(Sprite.isoRect);
+		_isoContainers.push(Sprite.isoContainer);
 		spriteGroup.add(Sprite);
 		Sprite.cameras = [];
 	}
@@ -425,7 +411,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 * @param	first	Starting index for the comparison
 	 * @param	count	The length of items to be compared starting from 'first'
 	 */
-	private function sortRange(a:Array<IsoRect>, compare:IsoRect->IsoRect->Int, first:Int, count:Int)
+	private function sortRange(a:Array<IsoContainer>, compare:IsoContainer->IsoContainer->Int, first:Int, count:Int)
 	{
 		var k = a.length;
 		if (k > 1)
@@ -434,7 +420,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		}
 	}
 	
-	private function _insertionSort(a:Array<IsoRect>, first:Int, k:Int, cmp:IsoRect->IsoRect->Int)
+	private function _insertionSort(a:Array<IsoContainer>, first:Int, k:Int, cmp:IsoContainer->IsoContainer->Int)
 	{
 		for (i in first + 1...first + k)
 		{
@@ -463,14 +449,14 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 * @param	b	The second value to compare
 	 * @return		An int representing the difference between values a and b
 	 */
-	private function compareNumberRise(a:IsoRect, b:IsoRect):Int
+	private function compareNumberRise(a:IsoContainer, b:IsoContainer):Int
 	{
 		return a.depth - b.depth;
 	}
 	
 	override public function update(elapsed:Float):Void
 	{
-		sortRange(_rects, compareNumberRise, 0, _rects.length);
+		sortRange(_isoContainers, compareNumberRise, 0, _isoContainers.length);
 		
 		super.update(elapsed);
 		
@@ -501,13 +487,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			return;
 		}
 		
-		// Copied from getScreenXY()
-		_helperPoint.x = Math.floor((x - Math.floor(Camera.scroll.x) * scrollFactor.x) * 5) / 5 + 0.1;
-		_helperPoint.y = Math.floor((y - Math.floor(Camera.scroll.y) * scrollFactor.y) * 5) / 5 + 0.1;
-		
-		_helperPoint.x *= Camera.totalScaleX;
-		_helperPoint.y *= Camera.totalScaleY;
-		
 		var debugColor:FlxColor;
 		var drawX:Float;
 		var drawY:Float;
@@ -520,32 +499,15 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var scaleY:Float = scale.y * Camera.totalScaleY;
 		var hackScaleX:Float = tileScaleHack * scaleX;
 		var hackScaleY:Float = tileScaleHack * scaleY;
-	
-		// Copy tile images into the tile buffer
-		// Modified from getScreenXY()
-		_point.x = (Camera.scroll.x * scrollFactor.x) - x; 
-		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
 		
-		var screenXInTiles:Int = Math.floor(_point.x / _scaledTileWidth);
-		var screenYInTiles:Int = Math.floor(_point.y / (_scaledTileDepth + _scaledTileHeight));
-		var screenRows:Int = buffer.rows;
-		var screenColumns:Int = buffer.columns;
-		
-		// Bound the upper left corner
-		screenXInTiles = Std.int(FlxMath.bound(screenXInTiles, 0, widthInTiles - screenColumns));
-		screenYInTiles = Std.int(FlxMath.bound(screenYInTiles, 0, (_scaledTileDepth + _scaledTileHeight) - screenRows));
-		
-		var rowIndex:Int = screenYInTiles * widthInTiles + screenXInTiles;
-		var columnIndex:Int;
 		var tile:FlxIsoTile;
-		var debugTile:BitmapData;
 		
-		var totalRects:Int = _rects.length;
+		var totalRects:Int = _isoContainers.length;
 		for (i in 0...totalRects) {
-			drawX = (_rects[i].isoPos.x - _point.x) - _scaledTileWidth / 2;
-			drawY = (_rects[i].isoPos.y + _point.y) - (_scaledTileDepth + _scaledTileHeight) / 2;
+			drawX = (_isoContainers[i].isoPos.x - _point.x) - _scaledTileWidth / 2;
+			drawY = (_isoContainers[i].isoPos.y + _point.y) - (_scaledTileDepth + _scaledTileHeight) / 2;
 			
-			tile = _tileObjects[_rects[i].index];
+			tile = _tileObjects[_isoContainers[i].index];
 			
 			if (tile != null)
 			{
@@ -612,6 +574,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				drawTilemap(buffer, camera);
 			}
 			
+			//TODO: Check if using this could remove interaction with _point in drawTilemap()
 			//getScreenPosition(_point, camera).add(buffer.x, buffer.y).copyToFlash(_flashPoint);
 			buffer.draw(camera, _flashPoint, scale.x, scale.y);
 			#else			
@@ -754,9 +717,9 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		return results;
 	}
 
-	public function getIsoRectAt(Index:Int):IsoRect
+	public function getIsoContainerAt(Index:Int):IsoContainer
 	{
-		return _rects[Index];
+		return _isoContainers[Index];
 	}
 	
 	override public function getTileIndexByCoords(Coord:FlxPoint):Int
@@ -1002,14 +965,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	#if FLX_RENDER_BLIT
 		Buffer.fill();
 	#else
-		getScreenPosition(_point, Camera).copyToFlash(_helperPoint);
-		
-		_helperPoint.x *= Camera.totalScaleX;
-		_helperPoint.y *= Camera.totalScaleY;
-		
-		_helperPoint.x = isPixelPerfectRender(Camera) ? Math.floor(_helperPoint.x) : _helperPoint.x;
-		_helperPoint.y = isPixelPerfectRender(Camera) ? Math.floor(_helperPoint.y) : _helperPoint.y;
-		
 		var scaleX:Float = scale.x * Camera.totalScaleX;
 		var scaleY:Float = scale.y * Camera.totalScaleY;
 		
@@ -1026,42 +981,43 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
 		
 		var tile:FlxIsoTile;
-		var frame:FlxFrame;
 		
 		#if !FLX_NO_DEBUG
 		var debugTile:BitmapData;
 		#end 
 		
-		var totalRects:Int = _rects.length;
+		var totalRects:Int = _isoContainers.length;
 		
+		/**
+		 * TODO: drawTilemap takes a lot of time because the loop goes through all tiles.
+		 * Find a way to solve this as the bigger the map, the longer the loop will take
+		 * (idea: we must reduce the loop size to only count what is already on the screen)
+		 */
 		for (i in 0...totalRects)
 		{
-			_flashRect = _rects[i];
-			if (_flashRect != null)
+			_isoObject = _isoContainers[i];
+			if (_isoObject != null)
 			{
-				drawPt.x = _flashRect.isoPos.x - _point.x;
-				drawPt.y = _flashRect.isoPos.y + _point.y;
+				drawPt.x = _isoObject.isoPos.x - _point.x;
+				drawPt.y = _isoObject.isoPos.y + _point.y;
 				
 				
-				tile = _tileObjects[_flashRect.index];
-				frame = tile.frame;
+				tile = _tileObjects[_isoObject.index];
 				
 				if (tile != null && tile.visible && tile.frame.type != FlxFrameType.EMPTY)
 				{
 					#if FLX_RENDER_BLIT
-					if (_flashRect.sprite == null) 
+					if (_isoObject.sprite == null) 
 					{
-						Buffer.pixels.copyPixels(frame.getBitmap(), frameRect, drawPt, null, null, true);
+						Buffer.pixels.copyPixels(tile.frame.getBitmap(), frameRect, drawPt, null, null, true);
 					} else {
-						_flashRect.sprite.draw();
-						Buffer.pixels.copyPixels(_flashRect.sprite.framePixels, _flashRect, drawPt, null, null, true);
+						_isoObject.sprite.draw();
+						Buffer.pixels.copyPixels(_isoObject.sprite.framePixels, frameRect, drawPt, null, null, true);
 					}
 					
 						#if !FLX_NO_DEBUG
 						if (FlxG.debugger.drawDebug && !ignoreDrawDebug) 
 						{
-							tile = _tileObjects[_flashRect.index];
-							
 							if (tile != null)
 							{
 								if (tile.allowCollisions <= FlxObject.NONE)
@@ -1087,9 +1043,9 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					#else
 						_matrix.identity();
 						
-						if (frame.angle != FlxFrameAngle.ANGLE_0)
+						if (tile.frame.angle != FlxFrameAngle.ANGLE_0)
 						{
-							frame.prepareFrameMatrix(_matrix);
+							tile.frame.prepareFrameMatrix(_matrix);
 						}
 						
 						_matrix.scale(hackScaleX, hackScaleY);
@@ -1097,12 +1053,12 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						drawItem = Camera.getDrawStackItem(graphic, isColored, _blendInt);
 						
 						//Chars
-						if (_flashRect.sprite != null) {
-							_flashRect.sprite.draw();
-							var charDrawItem = Camera.getDrawStackItem(_flashRect.sprite.frame.parent, isColored, _blendInt);
-							charDrawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.sprite.frame.tileID, _matrix, isColored, color, alpha);
+						if (_isoObject.sprite != null) {
+							_isoObject.sprite.draw();
+							var charDrawItem = Camera.getDrawStackItem(_isoObject.sprite.frame.parent, isColored, _blendInt);
+							charDrawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _isoObject.sprite.frame.tileID, _matrix, isColored, color, alpha);
 						} else {
-							drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _flashRect.index, _matrix, isColored, color, alpha);
+							drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _isoObject.index, _matrix, isColored, color, alpha);
 						}
 					#end
 				}
