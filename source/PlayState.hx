@@ -4,6 +4,7 @@ import coffeegames.mapgen.MapAlign;
 import coffeegames.mapgen.MapGenerator;
 import flixel.FlxG;
 import flixel.FlxObject;
+import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.math.FlxPoint;
 import flixel.text.FlxText;
@@ -24,6 +25,7 @@ class PlayState extends FlxState
 	var final:flixel.math.FlxPoint;
 	var isPressed:Bool;
 	var player:Player;
+	var cursor:flixel.FlxSprite;
 	
 	/**
 	 * Function that is called up when to state is created to set it up. 
@@ -62,7 +64,8 @@ class PlayState extends FlxState
 		map._tileDepth = 24;
 		map.loadMapFrom2DArray(mapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.adjustTiles();
-		map.setTileProperties(2, FlxObject.ANY, onMapCollide, null, 16);
+		//map.setTileProperties(2, FlxObject.ANY, onMapCollide, null, 16);
+		map.setTileProperties(0, FlxObject.NONE, null, null, 18);
 		map.camera.antialiasing = true;
 		add(map);
 		
@@ -88,6 +91,10 @@ class PlayState extends FlxState
 		//Map mouse / touch scrolling helpers
 		initial = FlxPoint.get(0, 0);
 		final = FlxPoint.get(0, 0);
+		
+		cursor = new FlxSprite(0, 0);
+		cursor.loadGraphic("images/cursor.png", true, 48, 72);
+		add(cursor);
 	}
 	
 	/**
@@ -148,6 +155,13 @@ class PlayState extends FlxState
 			}
 		}
 		
+		if (FlxG.keys.justPressed.E) {
+			trace("Changed tile");
+			//map.setIsoTile(1, 1, 0);
+			
+			//map.setTileByIndex(
+		}
+		
 		//Debug logging (neko || cpp)
 		if (FlxG.keys.justPressed.T) {
 			var log:String = "";
@@ -177,21 +191,40 @@ class PlayState extends FlxState
 			final = FlxG.mouse.getScreenPosition();
 			if (final.distanceTo(initial) < 2 && !player.isWalking) {
 				
-				//TODO: Copy 'findPath' method to FlxIsoTilemap and correctly implement it for iso
-				
 				var wPos = FlxG.mouse.getWorldPosition();
-				trace("Char will move to tile with index '" + map.getTileIndexByCoords(wPos) + "'");
+				var tile = map.getIsoTileByCoords(wPos);
+				trace("Mouse World Position -> '" + wPos + "' - in Tiles : " + tile.mapPos.x + "," + tile.mapPos.y);
 				
 				//findPath is returning null due to incorrect tile position calculations
-				var points = map.findPath(player.getMidpoint(), wPos);
+				var pPos = FlxPoint.get(player.isoContainer.isoPos.x, player.isoContainer.isoPos.y);
+				//var tPos = FlxPoint.get(tile.isoPos.x, tile.isoPos.y);
+				//var tPos = FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 2);
+				var tPos = FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 3);
+				var points = map.findPath(pPos, tPos);
 				trace( "points : " + points );
-				var path = new FlxPath(player, points);
-				player.isWalking = true;
-				path.onComplete = function (path:FlxPath) { trace("path complete"); player.isWalking = false; };
+				
+				for (i in 0...points.length) {
+					var t = map.getIsoTileByCoords(points[i]);
+					map.setIsoTile(Std.int(t.mapPos.y), Std.int(t.mapPos.x), 0);
+					//trace("Tile Index : " + map.getTile(Std.int(t.mapPos.y), Std.int(t.mapPos.x)));
+					//trace("Iso data Index : " + t.dataIndex);
+				}
+				
+				player.walkPath(points, 100);
+				//player.walkPath([tPos], 100);
+				
+				
+				//Testing tile clicks - working
+				var tile = map.getIsoTileByCoords(wPos);
+				map.setIsoTile(Std.int(tile.mapPos.y), Std.int(tile.mapPos.x), 0);
+				
+				//Placing cursor over the selected tile (offseting for correct positioning)
+				cursor.x = tile.isoPos.x - cursor.width / 2;
+				cursor.y = tile.isoPos.y - cursor.height / 2;
 			}
 		}
 		
-		if (FlxG.mouse.pressed) {
+/*		if (FlxG.mouse.pressed) {
 			var pt = FlxG.mouse.getScreenPosition();
 			if (pt.x > initial.x) {
 				var amount = pt.x - initial.x;
@@ -208,7 +241,7 @@ class PlayState extends FlxState
 				var amount = initial.y - pt.y;
 				FlxG.camera.scroll.y -= amount * elapsed;
 			}
-		}
+		}*/
 	}
 	
 	function onMapCollide(objA:Dynamic, objB:Dynamic):Void

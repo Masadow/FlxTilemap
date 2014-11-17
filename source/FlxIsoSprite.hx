@@ -7,7 +7,7 @@ import flixel.FlxSprite;
  */
 class FlxIsoSprite extends FlxSprite
 {
-	//0 - R; 1 - SE; 2 - S; 3 - SW; 4 - L; 5 - NW; 6 - N; 7 - NE
+	//0 - E; 1 - SE; 2 - S; 3 - SW; 4 - W; 5 - NW; 6 - N; 7 - NE
 	var isoFacing:Int;
 	public var isoContainer:IsoContainer;
 	

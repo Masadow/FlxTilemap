@@ -15,6 +15,11 @@ class Player extends FlxIsoSprite
 {
 	public var isWalking:Bool;
 	
+	var path:FlxPath;
+	var pathPoints:Array<FlxPoint>;
+	var pathSpeed:Float;
+	var pathPos:Int;
+	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
 	{
 		super(X, Y, SimpleGraphic);
@@ -47,9 +52,14 @@ class Player extends FlxIsoSprite
 	{
 		super.update(elapsed);
 		
-		velocity.x = velocity.y = 0;
+		//velocity.x = velocity.y = 0;
 		
-		handleInput();
+		//handleInput();
+		
+		if (isWalking) {
+			path.update(elapsed);
+			adjustPosition();
+		}
 	}
 	
 	function handleInput() 
@@ -103,5 +113,81 @@ class Player extends FlxIsoSprite
 				animation.play("idle_ne");
 		}
 		
+	}
+	
+	public function walkPath(points:Array<FlxPoint>, speed:Float)
+	{
+		pathPoints = points;
+		pathSpeed = speed;
+		pathPos = 0;
+		if (path == null)
+			path = new FlxPath(null, []);
+			
+		//Check new direction and adjust facing / animation
+		var dirX = pathPoints[pathPos].x - isoContainer.isoPos.x;
+		var dirY = pathPoints[pathPos].y - isoContainer.isoPos.y;
+		
+		if (dirX > 0 && dirY < 0) {	//NE
+			//isoFacing = 7;
+			isoFacing = 0;
+			animation.play("walk_ne");
+		} else if (dirX < 0 && dirY > 0) {	//SW
+			//isoFacing = 3;
+			isoFacing = 1;
+			animation.play("walk_sw");
+		} else if (dirX < 0 && dirY < 0) {	//NW
+			isoFacing = 2;
+			animation.play("walk_nw");
+		} else if (dirX > 0 && dirY > 0) {	//SE
+			isoFacing = 3;
+			animation.play("walk_se");
+		} else {
+			isoFacing = 4;
+			animation.play("idle_se");
+		}
+		
+		trace( "isoFacing : " + isoFacing );
+		
+		path.start(this, [pathPoints[pathPos]], pathSpeed, FlxPath.FORWARD, false);
+		path.onComplete = checkPath;
+		
+		isWalking = true;
+	}
+	
+	function checkPath(p:FlxPath)
+	{
+		pathPos++;
+		if (pathPos >= pathPoints.length) {
+			isWalking = false;
+			path.reset();
+			setAnimation();
+		} else {
+			//Check new direction and adjust facing / animation
+			var dirX = pathPoints[pathPos].x - isoContainer.isoPos.x;
+			var dirY = pathPoints[pathPos].y - isoContainer.isoPos.y;
+			
+			if (dirX > 0 && dirY < 0) {	//NE
+				//isoFacing = 7;
+				isoFacing = 0;
+				animation.play("walk_ne");
+			} else if (dirX < 0 && dirY > 0) {	//SW
+				//isoFacing = 3;
+				isoFacing = 1;
+				animation.play("walk_sw");
+			} else if (dirX < 0 && dirY < 0) {	//NW
+				isoFacing = 2;
+				animation.play("walk_nw");
+			} else if (dirX > 0 && dirY > 0) {	//SE
+				isoFacing = 3;
+				animation.play("walk_se");
+			} else {
+				isoFacing = 4;
+				animation.play("idle_se");
+			}
+			
+			path.reset();
+			path.start(this, [pathPoints[pathPos]], pathSpeed, FlxPath.FORWARD, false);
+			path.onComplete = checkPath;
+		}
 	}
 }

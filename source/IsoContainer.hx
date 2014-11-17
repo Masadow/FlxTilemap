@@ -39,6 +39,9 @@ class IsoContainer
 	 */
 	public var mapPos:MapPos;
 	
+	//TEMP
+	public var dataIndex:Int;
+	
 	public function new(sprite:FlxSprite) 
 	{
 		this.sprite = sprite;
