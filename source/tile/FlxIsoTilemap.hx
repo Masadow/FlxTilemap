@@ -246,7 +246,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		if (Std.is(TileGraphic, FlxTileFrames))
 		{
 			frames = cast(TileGraphic, FlxTileFrames);
-			trace( "frames : " + frames );
 			return;
 		}
 		
@@ -395,6 +394,12 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			row++;
 		}
 		
+		//Buffer offset 
+		#if FLX_RENDER_BLIT
+		_flashPoint.x -= _scaledTileWidth / 2;
+		_flashPoint.y -= _scaledTileHeight / 2;
+		#end
+		
 		trace( "_isoContainers : " + _isoContainers.length );
 	}
 	
@@ -510,12 +515,15 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var hackScaleX:Float = tileScaleHack * scaleX;
 		var hackScaleY:Float = tileScaleHack * scaleY;
 		
+		_point.x = (Camera.scroll.x * scrollFactor.x) - x; //modified from getScreenXY()
+		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
+		
 		var tile:FlxIsoTile;
 		
 		var totalRects:Int = _isoContainers.length;
 		for (i in 0...totalRects) {
 			drawX = (_isoContainers[i].isoPos.x - _point.x) - _scaledTileWidth / 2;
-			drawY = (_isoContainers[i].isoPos.y + _point.y) - (_scaledTileDepth + _scaledTileHeight) / 2;
+			drawY = (_isoContainers[i].isoPos.y - _point.y) - (_scaledTileDepth + _scaledTileHeight) / 2;
 			
 			tile = _tileObjects[_isoContainers[i].index];
 			
@@ -735,31 +743,37 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	
 	public function getIsoTileByCoords(Coord:FlxPoint):IsoContainer
 	{
-		var cX = Coord.x - (widthInTiles * _scaledTileWidth) / 2;
+		//Map offset
+		var cX = Coord.x - (heightInTiles * _scaledTileWidth) / 2;
 		var cY = Coord.y - _scaledTileDepth;
 		
+		//World to Map coordinates
 		var mapX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
 		var mapY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
 		
-		//trace("Coord : " + Coord.toString());
 		//trace("Map position : " + mapX + "," + mapY);
 
 		if (mapX < 0)
 			mapX = 0;
-		if (mapX > widthInTiles)
-			mapX = widthInTiles;
+		if (mapX > widthInTiles - 1)
+			mapX = widthInTiles - 1;
 			
 		if (mapY < 0)
 			mapY = 0;
-		if (mapY > heightInTiles)
-			mapY = heightInTiles;
+		if (mapY > heightInTiles - 1)
+			mapY = heightInTiles - 1;
 			
 		var isoContainer = _mapHelper[mapY][mapX];
 		
 		return isoContainer;
 	}
 	
-	public function getIsoContainerAt(Index:Int):IsoContainer
+	public function getIsoTileByMapCoords(X:Int, Y:Int):IsoContainer
+	{
+		return _mapHelper[X][Y];
+	}
+	
+	public function getIsoTileAt(Index:Int):IsoContainer
 	{
 		return _isoContainers[Index];
 	}
@@ -1041,7 +1055,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			if (_isoObject != null)
 			{
 				drawPt.x = _isoObject.isoPos.x - _point.x;
-				drawPt.y = _isoObject.isoPos.y + _point.y;
+				drawPt.y = _isoObject.isoPos.y - _point.y;
 				
 				
 				tile = _tileObjects[_isoObject.index];
@@ -1358,13 +1372,14 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	override public function findPath(Start:FlxPoint, End:FlxPoint, Simplify:Bool = true, RaySimplify:Bool = false, WideDiagonal:Bool = true):Array<FlxPoint>
 	{
 		// Figure out what tile we are starting and ending on.
-		//var startIndex:Int = getTileIndexByCoords(Start);
-		var startIndex:Int = getIsoTileByCoords(Start).dataIndex;
+		var startTile = getIsoTileByCoords(Start);
+		var startIndex:Int = startTile.dataIndex;
 		
-		//var endIndex:Int = getTileIndexByCoords(End);
-		var endIndex:Int = getIsoTileByCoords(End).dataIndex;
+		var endTile = getIsoTileByCoords(End);
+		var endIndex:Int = endTile.dataIndex;
 		
-		trace("Find path - start : " + startIndex + " | end : " + endIndex);
+		//trace("Find path - start : " + startIndex + " | end : " + endIndex);
+		//trace("Find path - start : " + startTile.mapPos.x + "," + startTile.mapPos.y + " | end : " + endTile.mapPos.x + "," + endTile.mapPos.y);
 		
 		// Check that the start and end are clear.
 		if ((_tileObjects[_data[startIndex]].allowCollisions > 0) || (_tileObjects[_data[endIndex]].allowCollisions > 0))
@@ -1374,7 +1389,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		// Figure out how far each of the tiles is from the starting tile
 		var distances:Array<Int> = computePathDistance(startIndex, endIndex, WideDiagonal);
-		trace( "distances : " + distances );
+		//trace( "distances : " + distances );
 		
 		if (distances == null)
 		{
@@ -1616,7 +1631,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		//Points.push(getTileCoordsByIndex(Start));
 		//var row = Std.int(Start / widthInTiles);
 		//var col = Std.int(Start % widthInTiles);
-		Points.push(FlxPoint.weak().copyFromFlash(getIsoContainerAt(Start).isoPos));
+		Points.push(FlxPoint.weak().copyFromFlash(getIsoTileAt(Start).isoPos));
 		//Points.push(FlxPoint.weak().copyFromFlash(_mapHelper[row][col].isoPos));
 		
 		if (Data[Start] == 0)

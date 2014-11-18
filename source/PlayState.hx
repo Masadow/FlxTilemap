@@ -38,6 +38,9 @@ class PlayState extends FlxState
 		FlxG.debugger.drawDebug = false;
 		
 		//Map generator pre-defined sizes
+/*		mapWidth = 8;
+		mapHeight = 16;*/
+		
 		mapWidth = 32;
 		mapHeight = 32;
 		
@@ -64,15 +67,16 @@ class PlayState extends FlxState
 		map._tileDepth = 24;
 		map.loadMapFrom2DArray(mapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.adjustTiles();
-		//map.setTileProperties(2, FlxObject.ANY, onMapCollide, null, 16);
-		map.setTileProperties(0, FlxObject.NONE, null, null, 18);
+		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
+		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
+		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
 		map.camera.antialiasing = true;
 		add(map);
 		
 		//Adding player to map
 		player = new Player(0, 0);
 		map.add(player);
-		var initialTile:IsoContainer = map.getIsoContainerAt(3 * mapWidth + 3);
+		var initialTile:IsoContainer = map.getIsoTileByMapCoords(3, 3);
 		player.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 		
 		//Adding instruction label
@@ -113,15 +117,9 @@ class PlayState extends FlxState
 	{
 		super.update(elapsed);
 		
-		//TODO: Make collision work
-		//FlxG.collide(map, map.spriteGroup, onMapCollide);
-		//map.overlaps(map.spriteGroup);
-		
-/*		#if (desktop || web)
-		handleInput(elapsed);
-		#elseif (android || ios)
-		handleTouchInput(elapsed);
-		#end*/
+		//TODO: Test / make collision work
+/*		FlxG.collide(map, map.spriteGroup, onMapCollide);
+		map.overlaps(map.spriteGroup);*/
 		
 		handleInput(elapsed);
 		handleTouchInput(elapsed);
@@ -149,17 +147,10 @@ class PlayState extends FlxState
 				var automaton = new Automaton(0, 0);
 				var startRow:Int = Std.int(mapHeight / 2);
 				var startCol:Int = Std.int(mapWidth / 2);
-				var initialTile:IsoContainer = map.getIsoContainerAt(startRow * startCol);
+				var initialTile:IsoContainer = map.getIsoTileByMapCoords(Std.int(mapHeight / 2), Std.int(mapWidth / 2));
 				automaton.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 				map.add(automaton);
 			}
-		}
-		
-		if (FlxG.keys.justPressed.E) {
-			trace("Changed tile");
-			//map.setIsoTile(1, 1, 0);
-			
-			//map.setTileByIndex(
 		}
 		
 		//Debug logging (neko || cpp)
@@ -193,26 +184,26 @@ class PlayState extends FlxState
 				
 				var wPos = FlxG.mouse.getWorldPosition();
 				var tile = map.getIsoTileByCoords(wPos);
-				trace("Mouse World Position -> '" + wPos + "' - in Tiles : " + tile.mapPos.x + "," + tile.mapPos.y);
-				
-				//findPath is returning null due to incorrect tile position calculations
-				var pPos = FlxPoint.get(player.isoContainer.isoPos.x, player.isoContainer.isoPos.y);
-				//var tPos = FlxPoint.get(tile.isoPos.x, tile.isoPos.y);
-				//var tPos = FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 2);
 				var tPos = FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 3);
+				trace("Tile : " + tile.mapPos.x + "," + tile.mapPos.y + " - Coords : " + wPos.toString());
+				
+				//findPath is returning null due to incorrect tile position calculations (or acting weird)
+/*				var pPos = FlxPoint.get(player.isoContainer.isoPos.x, player.isoContainer.isoPos.y);
+				trace( "pPos : " + pPos );
 				var points = map.findPath(pPos, tPos);
 				trace( "points : " + points );
 				
-				for (i in 0...points.length) {
-					var t = map.getIsoTileByCoords(points[i]);
-					map.setIsoTile(Std.int(t.mapPos.y), Std.int(t.mapPos.x), 0);
-					//trace("Tile Index : " + map.getTile(Std.int(t.mapPos.y), Std.int(t.mapPos.x)));
-					//trace("Iso data Index : " + t.dataIndex);
-				}
+				if (points != null) {
+					for (i in 0...points.length) {
+						var t = map.getIsoTileByCoords(points[i]);
+						map.setIsoTile(Std.int(t.mapPos.y), Std.int(t.mapPos.x), 0);
+					}
+					
+					player.walkPath(points, 100);
+				}*/
 				
-				player.walkPath(points, 100);
-				//player.walkPath([tPos], 100);
-				
+				//Walks directly to target
+				player.walkPath([tPos], 100);
 				
 				//Testing tile clicks - working
 				var tile = map.getIsoTileByCoords(wPos);
@@ -224,7 +215,7 @@ class PlayState extends FlxState
 			}
 		}
 		
-/*		if (FlxG.mouse.pressed) {
+		if (FlxG.mouse.pressed) {
 			var pt = FlxG.mouse.getScreenPosition();
 			if (pt.x > initial.x) {
 				var amount = pt.x - initial.x;
@@ -236,18 +227,18 @@ class PlayState extends FlxState
 				
 			if (pt.y > initial.y) {
 				var amount = pt.y - initial.y;
-				FlxG.camera.scroll.y += amount * elapsed;
+				FlxG.camera.scroll.y -= amount * elapsed;
 			} else {
 				var amount = initial.y - pt.y;
-				FlxG.camera.scroll.y -= amount * elapsed;
+				FlxG.camera.scroll.y += amount * elapsed;
 			}
-		}*/
+		}
 	}
 	
 	function onMapCollide(objA:Dynamic, objB:Dynamic):Void
 	{
 		if (objB.allowCollisions == FlxObject.ANY) {
-			trace("Collided with wall tile");
+			//trace("Collided with wall tile");
 		}
 	}
 }
