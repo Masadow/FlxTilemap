@@ -1,7 +1,8 @@
-package;
+﻿package;
 
 import coffeegames.mapgen.MapAlign;
 import coffeegames.mapgen.MapGenerator;
+import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
@@ -9,7 +10,8 @@ import flixel.FlxState;
 import flixel.math.FlxPoint;
 import flixel.text.FlxText;
 import flixel.tile.FlxBaseTilemap.FlxTilemapAutoTiling;
-import flixel.util.FlxPath;
+import flixel.tweens.FlxEase;
+import flixel.tweens.FlxTween;
 import tile.FlxIsoTilemap;
 
 /**
@@ -26,6 +28,11 @@ class PlayState extends FlxState
 	var isPressed:Bool;
 	var player:Player;
 	var cursor:flixel.FlxSprite;
+	var text:String;
+	var instructions:FlxText;
+	
+	var uiCam:FlxCamera;
+	var mapCam:flixel.FlxCamera;
 	
 	/**
 	 * Function that is called up when to state is created to set it up. 
@@ -50,6 +57,13 @@ class PlayState extends FlxState
 /*		mapWidth = 65;
 		mapHeight = 65;*/
 		
+		mapCam = new FlxCamera(0, 0, 1280, 720, 1);
+		FlxG.cameras.add(mapCam);
+		
+		uiCam = new FlxCamera(0, 0, 1280, 720, 1);
+		uiCam.bgColor = 0x00000000;
+		FlxG.cameras.add(uiCam);
+		
 		mapGen = new MapGenerator(mapWidth, mapHeight, 3, 5, 11, false);
 		mapGen.setIndices(9, 8, 10, 11, 14, 16, 17, 15, 7, 5, 1, 1, 0);
 		mapGen.generate();
@@ -70,26 +84,29 @@ class PlayState extends FlxState
 		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
 		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
 		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
-		map.camera.antialiasing = true;
+		map.cameras = [mapCam];
+		map.cameras[0].antialiasing = true;
 		add(map);
 		
 		//Adding player to map
 		player = new Player(0, 0);
+		player.set_camera(mapCam);
 		map.add(player);
 		var initialTile:IsoContainer = map.getIsoTileByMapCoords(3, 3);
 		player.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 		
 		//Adding instruction label
-		var text:String = "";
+		text = "";
 		#if (web || desktop)
-		text = "ARROWS - Move player | WASD - Scroll map | SPACE - reset | ENTER - Spawn chars";
+		text = "ARROWS - Move player | WASD - Scroll map | SPACE - reset | ENTER - Spawn chars | ZOOM : 1";
 		#elseif (ios || android)
-		text = "TOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position (Soon)";
+		text = "TOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position | ZOOM : 1";
 		#end
 		var textPos = minimap.x + minimap.width + 10;
 		var textWidth = 1280 - minimap.width - 30;
-		var instructions:FlxText = new FlxText(textPos, 10, textWidth, text, 14);
+		instructions = new FlxText(textPos, 10, textWidth, text, 14);
 		instructions.scrollFactor.set(0, 0);
+		instructions.set_camera(uiCam);
 		add(instructions);
 		
 		//Map mouse / touch scrolling helpers
@@ -97,6 +114,7 @@ class PlayState extends FlxState
 		final = FlxPoint.get(0, 0);
 		
 		cursor = new FlxSprite(0, 0);
+		cursor.set_camera(mapCam);
 		cursor.loadGraphic("images/cursor.png", true, 48, 72);
 		add(cursor);
 	}
@@ -128,13 +146,13 @@ class PlayState extends FlxState
 	function handleInput(elapsed:Float)
 	{
 		if (FlxG.keys.pressed.A)
-			FlxG.camera.scroll.x -= 300 * FlxG.elapsed;
+			mapCam.scroll.x -= 300 * FlxG.elapsed;
 		if (FlxG.keys.pressed.D)
-			FlxG.camera.scroll.x += 300 * FlxG.elapsed;
+			mapCam.scroll.x += 300 * FlxG.elapsed;
 		if (FlxG.keys.pressed.W)
-			FlxG.camera.scroll.y += 300 * FlxG.elapsed;
+			mapCam.scroll.y += 300 * FlxG.elapsed;
 		if (FlxG.keys.pressed.S)
-			FlxG.camera.scroll.y -= 300 * FlxG.elapsed;
+			mapCam.scroll.y -= 300 * FlxG.elapsed;
 			
 		if (FlxG.keys.justPressed.SPACE) {
 			FlxG.resetState();
@@ -182,7 +200,7 @@ class PlayState extends FlxState
 			final = FlxG.mouse.getScreenPosition();
 			if (final.distanceTo(initial) < 2 && !player.isWalking) {
 				
-				var wPos = FlxG.mouse.getWorldPosition();
+				var wPos = FlxG.mouse.getWorldPosition(mapCam);
 				var tile = map.getIsoTileByCoords(wPos);
 				var tPos = FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 3);
 				trace("Tile : " + tile.mapPos.x + "," + tile.mapPos.y + " - Coords : " + wPos.toString());
@@ -219,19 +237,35 @@ class PlayState extends FlxState
 			var pt = FlxG.mouse.getScreenPosition();
 			if (pt.x > initial.x) {
 				var amount = pt.x - initial.x;
-				FlxG.camera.scroll.x -= amount * elapsed;
-			} else {
+				mapCam.scroll.x -= 2 * amount * elapsed;
+			} 
+			
+			if (pt.x < initial.x) {
 				var amount = initial.x - pt.x;
-				FlxG.camera.scroll.x += amount * elapsed;
+				mapCam.scroll.x += 2 * amount * elapsed;
 			}
 				
 			if (pt.y > initial.y) {
 				var amount = pt.y - initial.y;
-				FlxG.camera.scroll.y -= amount * elapsed;
-			} else {
+				mapCam.scroll.y -= 2 * amount * elapsed;
+			} 
+			
+			if (pt.y < initial.y) {
 				var amount = initial.y - pt.y;
-				FlxG.camera.scroll.y += amount * elapsed;
+				mapCam.scroll.y += 2 * amount * elapsed;
 			}
+		}
+		
+		if (FlxG.mouse.wheel > 0) {
+			FlxTween.tween(mapCam, { zoom:mapCam.zoom + 0.2 }, 0.25, { type:FlxTween.ONESHOT, ease:FlxEase.quintOut, onComplete:function (t:FlxTween) {
+				instructions.text = text + " | ZOOM : " + Std.string(mapCam.zoom).substr(0, 3);
+			}} );
+		}
+		
+		if (FlxG.mouse.wheel < 0) {
+			FlxTween.tween(mapCam, { zoom:mapCam.zoom - 0.2 }, 0.25, { type:FlxTween.ONESHOT, ease:FlxEase.quintOut, onComplete:function (t:FlxTween) {
+				instructions.text = text + " | ZOOM : " + Std.string(mapCam.zoom).substr(0, 3);
+			}} );
 		}
 	}
 	
