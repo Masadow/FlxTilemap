@@ -7,7 +7,7 @@
     <movie path="Project.xml" />
     <movie fps="60" />
     <movie width="1280" />
-    <movie height="768" />
+    <movie height="720" />
     <movie version="1" />
     <movie minorVersion="0" />
     <movie platform="Lime" />
@@ -16,7 +16,7 @@
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
     <class path="C:\GitRepos\flixel" />
-    <class path="c:\GitRepos\openfl" />
+    <class path="C:\GitRepos\openfl" />
     <class path="C:\DevBuilds\lime_bleeding" />
     <class path="source" />
     <class path="C:\DevBuilds\lime_bleeding\legacy" />
@@ -24,12 +24,12 @@
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="flixel=3.3.5&#xA;openfl=2.1.5&#xA;lime=2.0.0-beta&#xA;tools=2.0.0-beta&#xA;lime-legacy&#xA;no-compilation&#xA;advanced-telemetry&#xA;FLX_NO_SOUND_SYSTEM&#xA;native&#xA;lime-native&#xA;openfl-native&#xA;FLX_NO_SOUND_TRAY&#xA;windows&#xA;desktop" />
+    <option directives="flixel=3.3.6&#xA;openfl=2.1.5&#xA;lime=2.0.0-beta&#xA;tools=2.0.0-beta&#xA;lime-legacy&#xA;no-compilation&#xA;advanced-telemetry&#xA;FLX_NO_SOUND_SYSTEM&#xA;native&#xA;lime-native&#xA;openfl-native&#xA;FLX_NO_SOUND_TRAY&#xA;windows&#xA;desktop" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
     <option mainClass="ApplicationMain" />
     <option enabledebug="True" />
-    <option additional="--remap flash:openfl&#xA;--macro flixel.system.macros.FlxConditionals.run()&#xA;#--macro keep(&quot;Main&quot;)" />
+    <option additional="--remap flash:openfl&#xA;--macro flixel.system.macros.FlxConditionals.run()&#xA;#--macro keep(&quot;Main&quot;)&#xA;-debug " />
   </build>
   <!-- haxelib libraries -->
   <haxelib>

@@ -1,5 +1,7 @@
 package;
 import flixel.FlxSprite;
+import flixel.math.FlxPoint;
+import tile.FlxIsoTilemap;
 
 /**
  * ...
@@ -9,7 +11,10 @@ class FlxIsoSprite extends FlxSprite
 {
 	//0 - E; 1 - SE; 2 - S; 3 - SW; 4 - W; 5 - NW; 6 - N; 7 - NE
 	var isoFacing:Int;
+	public var motionDiffX:Float;
+	public var motionDiffY:Float;
 	public var isoContainer:IsoContainer;
+	public var map:FlxIsoTilemap;
 	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
 	{
@@ -28,20 +33,7 @@ class FlxIsoSprite extends FlxSprite
 	 */
 	override public function setPosition(X:Float = 0, Y:Float = 0):Void
 	{
-		super.setPosition(X, Y - height / 2);
-		
-		adjustPosition();
-	}
-	
-	/**
-	 * Sets the world position of the sprite with tile index positions
-	 * @param	X	The tile column position in the map
-	 * @param	Y	The tile row position in the map
-	 */
-	public function setTilePosition(X:Int, Y:Int):Void
-	{
-		this.x = X * 48;
-		this.y = X * 24;
+		super.setPosition(X, Y);
 		
 		adjustPosition();
 	}
@@ -51,11 +43,22 @@ class FlxIsoSprite extends FlxSprite
 	 */
 	function adjustPosition()
 	{
-		var motionDiffX = this.x - last.x;
-		var motionDiffY = this.y - last.y;
+		motionDiffX = this.x - last.x;
+		motionDiffY = this.y - last.y;
+		
+		var tile = map.getIsoTileByCoords(FlxPoint.weak(isoContainer.isoPos.x, isoContainer.isoPos.y));
+		
 		var newIsoX = isoContainer.isoPos.x + motionDiffX;
 		var newIsoY = isoContainer.isoPos.y + motionDiffY;
+		
+		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY), false);
+		
+		isoContainer.mapPos = newTile.mapPos;
+		isoContainer.depth = newTile.depth;
+		
+		tile.sprite = null;
+		newTile.sprite = this;
+		
 		isoContainer.setIso(newIsoX, newIsoY);
-		isoContainer.depth = Std.int(isoContainer.isoPos.y * isoContainer.depthModifier + isoContainer.isoPos.x);
 	}
 }

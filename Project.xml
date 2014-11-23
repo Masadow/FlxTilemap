@@ -13,7 +13,7 @@
 	<!--------------------------------WINDOW SETTINGS------------------------------->
 	
 	<!--These window settings apply to all targets-->
-	<window width="1280" height="768" fps="60" background="#000000" hardware="true" vsync="true" />
+	<window width="1280" height="720" fps="60" background="#000000" hardware="true" vsync="true" />
 	
 	<!--Web-specific-->
 	<window if="web"		orientation="portrait"  />
@@ -79,5 +79,5 @@
 	<!--<haxedef name="FLX_NO_FOCUS_LOST_SCREEN" />-->
 	
 	<!--Disable the Flixel core debugger. Automatically gets set whenever you compile in release mode!-->
-	<!--<haxedef name="FLX_NO_DEBUG" unless="debug" />-->
+	<haxedef name="FLX_NO_DEBUG" unless="debug" />
 </project>

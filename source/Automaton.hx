@@ -38,7 +38,7 @@ class Automaton extends FlxIsoSprite
 		isWalking = false;
 		destination = FlxPoint.get(0, 0);
 		lastFacing = -1;
-		path = new FlxPath(null, [], 240, FlxPath.FORWARD, false);
+		path = new FlxPath();
 	}
 	
 	function handleMovement()

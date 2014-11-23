@@ -7,6 +7,7 @@ import flixel.FlxState;
  */
 class MenuState extends FlxState
 {
+	
 	/**
 	 * Function that is called up when to state is created to set it up. 
 	 */
@@ -27,8 +28,8 @@ class MenuState extends FlxState
 	/**
 	 * Function that is called once every frame.
 	 */
-	override public function update():Void
+	override public function update(elapsed:Float):Void
 	{
-		super.update();
+		super.update(elapsed);
 	}	
 }

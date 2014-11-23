@@ -22,7 +22,8 @@ class IsoContainer
 	/**
 	 * Reference to the sprite containing this IsoContainer
 	 */
-	public var sprite:FlxSprite;
+	//public var sprite:FlxSprite;
+	public var sprite:FlxIsoSprite;
 	
 	/**
 	 * Modifier to keep certain types of tiles always above or below other types
@@ -42,7 +43,8 @@ class IsoContainer
 	//TEMP
 	public var dataIndex:Int;
 	
-	public function new(sprite:FlxSprite) 
+	//public function new(sprite:FlxSprite) 
+	public function new(sprite:FlxIsoSprite) 
 	{
 		this.sprite = sprite;
 		isoPos = new Point( -1, -1);

@@ -19,6 +19,7 @@ class Player extends FlxIsoSprite
 	var pathPoints:Array<FlxPoint>;
 	var pathSpeed:Float;
 	var pathPos:Int;
+	var isoTarget:FlxPoint;
 	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
 	{
@@ -29,7 +30,6 @@ class Player extends FlxIsoSprite
 	function init() 
 	{
 		isWalking = false;
-		//loadGraphic("images/char_3.png", true, 48, 48);
 		loadGraphic("images/char_4.png", true, 48, 72);
 		
 		animation.add("idle_se", [0], 12, true);
@@ -57,7 +57,6 @@ class Player extends FlxIsoSprite
 		//handleInput();
 		
 		if (isWalking) {
-			path.update(elapsed);
 			adjustPosition();
 		}
 	}
@@ -90,10 +89,12 @@ class Player extends FlxIsoSprite
 		}
 		
 		if (FlxG.keys.anyPressed(["UP", "DOWN", "LEFT", "RIGHT"])) {
+			isWalking = true;
 			adjustPosition();
 		}
 		
 		if (FlxG.keys.anyJustReleased(["UP", "DOWN", "LEFT", "RIGHT"])) {
+			isWalking = false;
 			setAnimation();
 		}
 	}
@@ -120,8 +121,9 @@ class Player extends FlxIsoSprite
 		pathPoints = points;
 		pathSpeed = speed;
 		pathPos = 0;
+		
 		if (path == null)
-			path = new FlxPath(null, []);
+			path = new FlxPath();
 			
 		//Check new direction and adjust facing / animation
 		var dirX = pathPoints[pathPos].x - isoContainer.isoPos.x;
@@ -146,11 +148,10 @@ class Player extends FlxIsoSprite
 			animation.play("idle_se");
 		}
 		
-		trace( "isoFacing : " + isoFacing );
+		//trace( "isoFacing : " + isoFacing );
 		
 		path.start(this, [pathPoints[pathPos]], pathSpeed, FlxPath.FORWARD, false);
 		path.onComplete = checkPath;
-		
 		isWalking = true;
 	}
 	
@@ -161,6 +162,19 @@ class Player extends FlxIsoSprite
 			isWalking = false;
 			path.reset();
 			setAnimation();
+			
+			//Updates map tiles and player isoContainer
+			var oldTile = map.getIsoTileByCoords(FlxPoint.weak(isoContainer.isoPos.x, isoContainer.isoPos.y), false);
+			oldTile.sprite = null;
+			var tile = map.getIsoTileByCoords(FlxPoint.weak(this.x, this.y), false);
+			tile.sprite = this;
+			isoContainer.mapPos.x = tile.mapPos.x;
+			isoContainer.mapPos.y = tile.mapPos.y;
+			isoContainer.isoPos.x = tile.isoPos.x;
+			isoContainer.isoPos.y = tile.isoPos.y;
+			
+			trace("Player final position : " + isoContainer.toString());
+			//trace("Player ortho position : " + this.x + "," + this.y);
 		} else {
 			//Check new direction and adjust facing / animation
 			var dirX = pathPoints[pathPos].x - isoContainer.isoPos.x;
@@ -184,7 +198,7 @@ class Player extends FlxIsoSprite
 				isoFacing = 4;
 				animation.play("idle_se");
 			}
-			
+		
 			path.reset();
 			path.start(this, [pathPoints[pathPos]], pathSpeed, FlxPath.FORWARD, false);
 			path.onComplete = checkPath;
