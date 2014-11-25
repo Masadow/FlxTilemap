@@ -22,7 +22,6 @@ class IsoContainer
 	/**
 	 * Reference to the sprite containing this IsoContainer
 	 */
-	//public var sprite:FlxSprite;
 	public var sprite:FlxIsoSprite;
 	
 	/**
@@ -43,7 +42,6 @@ class IsoContainer
 	//TEMP
 	public var dataIndex:Int;
 	
-	//public function new(sprite:FlxSprite) 
 	public function new(sprite:FlxIsoSprite) 
 	{
 		this.sprite = sprite;
@@ -51,7 +49,7 @@ class IsoContainer
 		depth = -1;
 		depthModifier = -1;
 		index = -1;
-		mapPos = { x: -1, y: -1 };
+		mapPos = { x: 0, y: 0 };
 	}
 	
 	/**

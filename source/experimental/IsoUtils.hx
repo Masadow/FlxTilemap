@@ -16,7 +16,7 @@ class IsoUtils
 	 * @param	first	Starting index for the comparison
 	 * @param	count	The length of items to be compared starting from 'first'
 	 */
-	public static function sortRange(a:Array<IsoContainer>, compare:IsoContainer->IsoContainer->Int, first:Int, count:Int)
+	public static inline function sortRange(a:Array<IsoContainer>, compare:IsoContainer->IsoContainer->Int, first:Int, count:Int)
 	{
 		var k = a.length;
 		if (k > 1)
@@ -25,7 +25,7 @@ class IsoUtils
 		}
 	}
 	
-	private static function _insertionSort(a:Array<IsoContainer>, first:Int, k:Int, cmp:IsoContainer->IsoContainer->Int)
+	public static inline function _insertionSort(a:Array<IsoContainer>, first:Int, k:Int, cmp:IsoContainer->IsoContainer->Int)
 	{
 		for (i in first + 1...first + k)
 		{
@@ -54,7 +54,7 @@ class IsoUtils
 	 * @param	b	The second value to compare
 	 * @return		An int representing the difference between values a and b
 	 */
-	private static function compareNumberRise(a:IsoContainer, b:IsoContainer):Int
+	public static inline function compareNumberRise(a:IsoContainer, b:IsoContainer):Int
 	{
 		return a.depth - b.depth;
 	}
@@ -62,7 +62,7 @@ class IsoUtils
 	//Bucket sort - uncomment to return 1d flattened array
 	//Currently returns a 2d array
 	//public static function bucketSort(arr:Array<IsoContainer>):Array<IsoContainer>
-	public static function bucketSort(arr:Array<IsoContainer>):Array<Array<IsoContainer>>
+/*	public static function bucketSort(arr:Array<IsoContainer>):Array<Array<IsoContainer>>
 	{
 		var highestDepthModifier:Int = 10;
 		var maxDepth:Int = this.widthInTiles * highestDepthModifier + this.heightInTiles;
@@ -77,12 +77,12 @@ class IsoUtils
 		}
 		
 		//Flatten - returns a sorted 1D array
-/*		var result = new Array<IsoContainer>();
-		for (i in 0...buckets.length) {
-			for (j in 0...buckets[i].length) {
-				result.push(buckets[i][j]);
-			}
-		}*/
+		//var result = new Array<IsoContainer>();
+		//for (i in 0...buckets.length) {
+			//for (j in 0...buckets[i].length) {
+				//result.push(buckets[i][j]);
+			//}
+		//}
 		
 		var count:Int = 0;
 		var maxLength:Int = 0;
@@ -101,5 +101,5 @@ class IsoUtils
 		
 		//return result;
 		return buckets;
-	}
+	}*/
 }

@@ -20,8 +20,7 @@ class Automaton extends FlxIsoSprite
 	{
 		super(X, Y, SimpleGraphic);
 		
-		//loadGraphic("images/char_3.png", true, 48, 48);
-		loadGraphic("images/char_4.png", true, 48, 72);
+		loadGraphic("images/char_4_64.png", true, 64, 96);
 		
 		animation.add("idle_se", [0], 12, true);
 		animation.add("idle_sw", [3], 12, true);
@@ -50,7 +49,7 @@ class Automaton extends FlxIsoSprite
 		
 		if (isWalking)
 		{
-			move();
+			adjustPosition();
 		}
 	}
 	
@@ -88,12 +87,6 @@ class Automaton extends FlxIsoSprite
 		path.onComplete = resetPath;
 		
 		isWalking = true;
-	}
-
-	function move() 
-	{
-		path.update(FlxG.elapsed);
-		adjustPosition();
 	}
 	
 	function resetPath(path:FlxPath) 

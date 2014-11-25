@@ -88,7 +88,7 @@ class PlayState extends FlxState
 		//Cursor to show mouse click position
 		cursor = new FlxSprite(0, 0);
 		cursor.set_camera(mapCam);
-		cursor.loadGraphic("images/cursor.png", true, 48, 72);
+		cursor.loadGraphic("images/cursor_64.png", true, 64, 96);
 		add(cursor);
 	}
 	
@@ -113,15 +113,20 @@ class PlayState extends FlxState
 		else
 			map = new FlxIsoTilemap(new Rectangle(0, 0, FlxG.stage.stageWidth, FlxG.stage.stageHeight));
 			
-		map._tileDepth = 24;
-		map.loadMapFrom2DArray(mapData, "images/tileset.png", 48, 48, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		map._tileDepth = 32;
+		//Static layer
+		map.addLayer(0, 2, 0);
+		//Dynamic layer
+		map.addLayer(2, 16, 1);
+		
+		map.loadMapFrom2DArray(mapData, "images/tileset_64.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.adjustTiles();
 		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
 		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
 		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
 		map.cameras = [mapCam];
 		#if debug
-		map.ignoreDrawDebug = false;
+		map.ignoreDrawDebug = true;
 		#end
 		add(map);
 		
@@ -164,25 +169,33 @@ class PlayState extends FlxState
 			//var frameColor = 0xFF666666;
 			var top = new FlxSprite(0, 0);
 			top.makeGraphic(1280, 128, frameColor);
+			#if debug
 			top.ignoreDrawDebug = true;
+			#end
 			top.set_camera(uiCam);
 			add(top);
 			
 			var bottom = new FlxSprite(0, 592);
 			bottom.makeGraphic(1280, 128, frameColor);
+			#if debug
 			bottom.ignoreDrawDebug = true;
+			#end
 			bottom.set_camera(uiCam);
 			add(bottom);
 			
 			var left = new FlxSprite(0, 128);
 			left.makeGraphic(128, 464, frameColor);
+			#if debug
 			left.ignoreDrawDebug = true;
+			#end
 			left.set_camera(uiCam);
 			add(left);
 			
 			var right = new FlxSprite(1152, 128);
 			right.makeGraphic(128, 464, frameColor);
+			#if debug
 			right.ignoreDrawDebug = true;
+			#end
 			right.set_camera(uiCam);
 			add(right);
 		}
@@ -190,16 +203,19 @@ class PlayState extends FlxState
 		//Adding instruction label
 		text = "";
 		#if (web || desktop)
-		text = "ARROWS - Move player | WASD - Scroll map | SPACE - reset | ENTER - Spawn chars | ZOOM : 1";
+		text = "ARROWS - Move player | WASD - Scroll map\nSPACE - reset | ENTER - Spawn chars\nTAB - Toggle minimap | ZOOM : 1";
 		#elseif (ios || android)
-		text = "TOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position | ZOOM : 1";
+		text = "TOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position\nTAB - Toggle minimap | ZOOM : 1";
 		#end
 		var textPos = minimap.x + minimap.width + 10;
 		var textWidth = 1280 - minimap.width - 30;
 		instructions = new FlxText(textPos, 10, textWidth, text, 14);
 		instructions.scrollFactor.set(0, 0);
+		instructions.setBorderStyle(FlxTextBorderStyle.OUTLINE_FAST, 0x666666);
 		instructions.set_camera(uiCam);
+		#if debug
 		instructions.ignoreDrawDebug = true;
+		#end
 		add(instructions);
 	}
 	
@@ -244,19 +260,29 @@ class PlayState extends FlxState
 			FlxG.resetState();
 		}
 		
+		if (FlxG.keys.justPressed.TAB) {
+			if (minimap.visible) {
+				FlxTween.tween(instructions, { x: 10 }, 0.3, { type:FlxTween.ONESHOT, ease:FlxEase.quadOut});
+				FlxTween.tween(minimap, { x: -minimap.width }, 0.3, { type:FlxTween.ONESHOT, ease:FlxEase.quadOut, onComplete:function (t:FlxTween) {
+					minimap.visible = false;
+				}});
+			} else {
+				minimap.visible = true;
+				FlxTween.tween(minimap, { x: 10 }, 0.3, { type:FlxTween.ONESHOT, ease:FlxEase.quadOut } );
+				FlxTween.tween(instructions, { x: minimap.width + 20 }, 0.3, { type:FlxTween.ONESHOT, ease:FlxEase.quadOut});
+			}
+		}
+		
 		//Adds 10 automatons
 		if (FlxG.keys.justPressed.ENTER) {
 			for (i in 0...10)
 			{
-				var automaton = new Automaton(0, 0);
-				var isoPt:FlxPoint = map.getIsoPointByCoords(FlxPoint.weak(640, 360));
-				trace( "Automaton -> isoPt : " + isoPt );
+				var automaton = new Automaton(640, 960);
+				var isoPt:FlxPoint = map.getIsoPointByCoords(FlxPoint.weak(640, 960));
 				var isoCoords = map.getIsoTileByMapCoords(Std.int(isoPt.x), Std.int(isoPt.y));
-				trace( "Automaton -> isoCoords : " + isoCoords );
-				
 				var initialTile = map.getIsoTileByMapCoords(Std.int(isoPt.x), Std.int(isoPt.y));
-				trace( "Automaton -> initialTile : " + initialTile );
-				automaton.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
+				player.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
+				
 				map.add(automaton);
 			}
 		}

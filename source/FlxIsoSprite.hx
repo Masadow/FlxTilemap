@@ -16,9 +16,13 @@ class FlxIsoSprite extends FlxSprite
 	public var isoContainer:IsoContainer;
 	public var map:FlxIsoTilemap;
 	
+	public var mustSort:Bool;
+	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
 	{
 		super(X, Y, SimpleGraphic);
+		
+		mustSort = true;
 		
 		isoContainer = new IsoContainer(this);
 		isoContainer.depthModifier = 1000;
@@ -46,18 +50,13 @@ class FlxIsoSprite extends FlxSprite
 		motionDiffX = this.x - last.x;
 		motionDiffY = this.y - last.y;
 		
-		var tile = map.getIsoTileByCoords(FlxPoint.weak(isoContainer.isoPos.x, isoContainer.isoPos.y));
-		
 		var newIsoX = isoContainer.isoPos.x + motionDiffX;
 		var newIsoY = isoContainer.isoPos.y + motionDiffY;
 		
 		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY), false);
 		
 		isoContainer.mapPos = newTile.mapPos;
-		isoContainer.depth = newTile.depth;
-		
-		tile.sprite = null;
-		newTile.sprite = this;
+		isoContainer.depth = Std.int(newIsoY * isoContainer.depthModifier + newIsoX);
 		
 		isoContainer.setIso(newIsoX, newIsoY);
 	}
