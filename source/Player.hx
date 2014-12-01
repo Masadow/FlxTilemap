@@ -1,5 +1,6 @@
 package ;
 import flixel.FlxG;
+import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.math.FlxMath;
 import flixel.util.FlxPath;
@@ -19,7 +20,6 @@ class Player extends FlxIsoSprite
 	var pathPoints:Array<FlxPoint>;
 	var pathSpeed:Float;
 	var pathPos:Int;
-	var isoTarget:FlxPoint;
 	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
 	{
@@ -30,31 +30,44 @@ class Player extends FlxIsoSprite
 	function init() 
 	{
 		isWalking = false;
-		loadGraphic("images/char_4_64.png", true, 64, 96);
+		loadGraphic("images/new_char.png", true, 64, 96);
 		
-		animation.add("idle_se", [0], 12, true);
-		animation.add("idle_sw", [3], 12, true);
-		animation.add("idle_nw", [6], 12, true);
-		animation.add("idle_ne", [9], 12, true);
+		setFacingFlip(FlxObject.RIGHT, false, false);
+		setFacingFlip(FlxObject.LEFT, true, false);
 		
-		animation.add("walk_se", [0, 1, 2], 12, true);
-		animation.add("walk_sw", [3, 4, 5], 12, true);
-		animation.add("walk_nw", [6, 7, 8], 12, true);
-		animation.add("walk_ne", [9, 10, 11], 12, true);
+		animation.add("idle_n", [0], 12, true);
+		animation.add("idle_s", [5], 12, true);
 		
-		animation.play("idle_se");
+		animation.add("walk_n", [0, 1, 2, 3, 4], 12, true);
+		animation.add("walk_s", [5, 6, 7, 8, 9], 12, true);
+		
+		animation.play("idle_s");
 		
 		maxVelocity.x = 240;
 		maxVelocity.y = 120;
+		
 	}
 	
 	override public function update(elapsed:Float):Void 
 	{
 		super.update(elapsed);
 		
+		//Disabled keyboard input
 		//velocity.x = velocity.y = 0;
-		
 		//handleInput();
+		
+		switch (isoFacing) {
+			case 0:
+				set_facing(FlxObject.RIGHT);
+			case 1:
+				set_facing(FlxObject.LEFT);
+			case 2:
+				set_facing(FlxObject.LEFT);
+			case 3:
+				set_facing(FlxObject.RIGHT);
+			default:
+				set_facing(FlxObject.RIGHT);
+		}
 		
 		if (isWalking) {
 			adjustPosition();
@@ -67,25 +80,30 @@ class Player extends FlxIsoSprite
 	function handleInput() 
 	{
 		if (FlxG.keys.pressed.UP) {
-			animation.play("walk_ne");
+			animation.play("walk_n");
+			set_facing(FlxObject.RIGHT);
 			velocity.x = 120;
 			velocity.y = -60;
 			isoFacing = 0;
 		}
 		if (FlxG.keys.pressed.DOWN) {
-			animation.play("walk_sw");
+			animation.play("walk_s");
+			set_facing(FlxObject.LEFT);
 			velocity.x = -120;
 			velocity.y = 60;
 			isoFacing = 1;
 		}
 		if (FlxG.keys.pressed.LEFT) {
-			animation.play("walk_nw");
+			animation.play("walk_n");
+			set_facing(FlxObject.LEFT);
 			velocity.x = -120;
 			velocity.y = -60;
 			isoFacing = 2;
 		}
 		if (FlxG.keys.pressed.RIGHT) {
-			animation.play("walk_se");
+			animation.play("walk_s");
+			set_facing(FlxObject.RIGHT);
+			
 			velocity.x = 120;
 			velocity.y = 60;
 			isoFacing = 3;
@@ -106,15 +124,20 @@ class Player extends FlxIsoSprite
 	{
 		switch (isoFacing) {
 			case 0:
-				animation.play("idle_ne");
+				animation.play("idle_n");
+				set_facing(FlxObject.RIGHT);
 			case 1:
-				animation.play("idle_sw");
+				animation.play("idle_s");
+				set_facing(FlxObject.LEFT);
 			case 2:
-				animation.play("idle_nw");
+				animation.play("idle_n");
+				set_facing(FlxObject.LEFT);
 			case 3:
-				animation.play("idle_se");
+				animation.play("idle_s");
+				set_facing(FlxObject.RIGHT);
 			default:
-				animation.play("idle_ne");
+				animation.play("idle_n");
+				set_facing(FlxObject.RIGHT);
 		}
 		
 	}
@@ -128,28 +151,7 @@ class Player extends FlxIsoSprite
 		if (path == null)
 			path = new FlxPath();
 			
-		//Check new direction and adjust facing / animation
-		var dirX = pathPoints[pathPos].x - isoContainer.isoPos.x;
-		var dirY = pathPoints[pathPos].y - isoContainer.isoPos.y;
-		
-		if (dirX > 0 && dirY < 0) {	//NE
-			//isoFacing = 7;
-			isoFacing = 0;
-			animation.play("walk_ne");
-		} else if (dirX < 0 && dirY > 0) {	//SW
-			//isoFacing = 3;
-			isoFacing = 1;
-			animation.play("walk_sw");
-		} else if (dirX < 0 && dirY < 0) {	//NW
-			isoFacing = 2;
-			animation.play("walk_nw");
-		} else if (dirX > 0 && dirY > 0) {	//SE
-			isoFacing = 3;
-			animation.play("walk_se");
-		} else {
-			isoFacing = 4;
-			animation.play("idle_se");
-		}
+		setDirection();
 		
 		path.start(this, [pathPoints[pathPos]], pathSpeed, FlxPath.FORWARD, false);
 		path.onComplete = checkPath;
@@ -166,32 +168,51 @@ class Player extends FlxIsoSprite
 			
 			trace("Player final position : " + isoContainer.toString());
 		} else {
-			//Check new direction and adjust facing / animation
-			var dirX = pathPoints[pathPos].x - isoContainer.isoPos.x;
-			var dirY = pathPoints[pathPos].y - isoContainer.isoPos.y;
 			
-			if (dirX > 0 && dirY < 0) {	//NE
-				//isoFacing = 7;
-				isoFacing = 0;
-				animation.play("walk_ne");
-			} else if (dirX < 0 && dirY > 0) {	//SW
-				//isoFacing = 3;
-				isoFacing = 1;
-				animation.play("walk_sw");
-			} else if (dirX < 0 && dirY < 0) {	//NW
-				isoFacing = 2;
-				animation.play("walk_nw");
-			} else if (dirX > 0 && dirY > 0) {	//SE
-				isoFacing = 3;
-				animation.play("walk_se");
-			} else {
-				isoFacing = 4;
-				animation.play("idle_se");
-			}
-		
+			setDirection();
+			
 			path.reset();
 			path.start(this, [pathPoints[pathPos]], pathSpeed, FlxPath.FORWARD, false);
 			path.onComplete = checkPath;
+		}
+	}
+	
+	/**
+	 * Check new direction and adjust facing / animation
+	 */
+	function setDirection()
+	{
+		var dirX:Int = 0;
+		var dirY:Int = 0;
+		if (pathPos > 0) {
+			dirX = Std.int(pathPoints[pathPos].x - pathPoints[pathPos - 1].x);
+			dirY = Std.int(pathPoints[pathPos].y - pathPoints[pathPos - 1].y);
+		} else {
+			dirX = Std.int(pathPoints[pathPos].x - isoContainer.isoPos.x);
+			dirY = Std.int(pathPoints[pathPos].y - isoContainer.isoPos.y);
+		}
+		
+		if (dirX > 0 && dirY > 0) { //SE
+			isoFacing = 3;
+			animation.play("walk_s");
+			set_facing(FlxObject.RIGHT);
+		}
+		
+		if (dirX < 0 && dirY > 0) { //SW
+			isoFacing = 1;
+			animation.play("walk_s");
+			set_facing(FlxObject.LEFT);
+		} 
+		
+		if (dirX < 0 && dirY < 0) { //NW
+			isoFacing = 2;
+			animation.play("walk_n");
+			set_facing(FlxObject.LEFT);
+		} 
+		if (dirX > 0 && dirY < 0) { //NE
+			isoFacing = 0;
+			animation.play("walk_n");
+			set_facing(FlxObject.RIGHT);
 		}
 	}
 }

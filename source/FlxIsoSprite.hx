@@ -10,13 +10,13 @@ import tile.FlxIsoTilemap;
 class FlxIsoSprite extends FlxSprite
 {
 	//0 - E; 1 - SE; 2 - S; 3 - SW; 4 - W; 5 - NW; 6 - N; 7 - NE
-	var isoFacing:Int;
 	public var motionDiffX:Float;
 	public var motionDiffY:Float;
 	public var isoContainer:IsoContainer;
 	public var map:FlxIsoTilemap;
-	
 	public var mustSort:Bool;
+	
+	var isoFacing:Int;
 	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
 	{
@@ -53,7 +53,7 @@ class FlxIsoSprite extends FlxSprite
 		var newIsoX = isoContainer.isoPos.x + motionDiffX;
 		var newIsoY = isoContainer.isoPos.y + motionDiffY;
 		
-		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY), false);
+		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY + map._tileDepth));
 		
 		isoContainer.mapPos = newTile.mapPos;
 		isoContainer.depth = Std.int(newIsoY * isoContainer.depthModifier + newIsoX);
