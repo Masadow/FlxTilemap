@@ -214,8 +214,10 @@ class PlayState extends FlxState
 		
 		//Adding instruction label
 		text = '';
-		#if (web || desktop)
+		#if (flash || desktop)
 		text = 'MAP SIZE - ${map.widthInTiles},${map.heightInTiles}\nARROWS - Move player | WASD - Scroll map\nSPACE - reset | ENTER - Spawn chars\nTAB - Toggle minimap | ZOOM : 1';
+		#elseif html5
+		text = 'MAP SIZE - ${map.widthInTiles},${map.heightInTiles} | ARROWS - Move player | WASD - Scroll map | SPACE - reset | ENTER - Spawn chars | TAB - Toggle minimap | PgUp / PgDown -> ZOOM : 1';
 		#elseif (ios || android)
 		text = 'MAP SIZE - ${map.widthInTiles},${map.heightInTiles}\nTOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position\nTAB - Toggle minimap | ZOOM : 1';
 		#end
@@ -295,6 +297,26 @@ class PlayState extends FlxState
 				automaton.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 			}
 		}
+		
+		#if html5
+		//Camera zoom in
+		if (FlxG.keys.justPressed.PAGEUP && !isZooming) {
+			isZooming = true;
+			FlxTween.tween(mapCam, { zoom:mapCam.zoom + 0.2 }, 0.2, { type:FlxTween.ONESHOT, ease:FlxEase.quintOut, onComplete:function (t:FlxTween) {
+				instructions.text = StringTools.replace(instructions.text, instructions.text.substring(instructions.text.indexOf("ZOOM"), instructions.text.length), "ZOOM : " + Std.string(mapCam.zoom).substr(0, 3));
+				isZooming = false;
+			}} );
+		}
+		
+		//Camera zoom out
+		if (FlxG.keys.justPressed.PAGEDOWN && !isZooming) {
+			isZooming = true;
+			FlxTween.tween(mapCam, { zoom:mapCam.zoom - 0.2 }, 0.2, { type:FlxTween.ONESHOT, ease:FlxEase.quintOut, onComplete:function (t:FlxTween) {
+				instructions.text = StringTools.replace(instructions.text, instructions.text.substring(instructions.text.indexOf("ZOOM"), instructions.text.length), "ZOOM : " + Std.string(mapCam.zoom).substr(0, 3));
+				isZooming = false;
+			}} );
+		}
+		#end
 	}
 	
 	function handleTouchInput(elapsed:Float)

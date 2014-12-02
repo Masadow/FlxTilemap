@@ -12,6 +12,11 @@ Currently in alpha, not recommended for production environments. Big refactoring
  * Pathfinding with simple A* implementation
  * Map scrolling and zoom
  
+### Live Demo
+
+ * [Flash](https://dl.dropboxusercontent.com/u/18504814/FlxIsoTilemap/flash/index.html)
+ * [HTML5](https://dl.dropboxusercontent.com/u/18504814/FlxIsoTilemap/html5/index.html)
+ 
 ### To do:
 
  * Heights
@@ -20,21 +25,22 @@ Currently in alpha, not recommended for production environments. Big refactoring
  * Bigger-than-tile objects
  * Improve performance
  * Better demo
- * Live demo and binaries here
+ * Link to Neko & Cpp Binaries
 
 ### Known Bugs
 
  * Sometimes when scrolling the leftmost column on the screen appears / disappears (floating point maybe?);
  * Tilemap tearing in Flash (very easy to spot when scrolling the camera, some tiles will be drawn 1px off their position) - might be on flixel side;
  * Collisions not working correctly (callbacks dispatching regardless of position and tile type);
+ * Zoom not working correctly in html5
 
 ### Targets
 
- * [x] flash
- * [x] html5 (must disable openfl-bitfive html5 backend)
- * [x] desktop (cpp & neko)
- * [x] android
- * [ ] ios (should work, test needed)
+ * [x] Flash
+ * [x] Html5 (using Openfl default backend)
+ * [x] Desktop (cpp & neko)
+ * [x] Android
+ * [ ] iOS (should work, test needed)
 
 ### Misc
  

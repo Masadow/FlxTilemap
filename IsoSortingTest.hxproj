@@ -19,17 +19,16 @@
     <class path="C:\GitRepos\openfl" />
     <class path="C:\DevBuilds\lime_bleeding" />
     <class path="source" />
-    <class path="C:\DevBuilds\lime_bleeding\legacy" />
-    <class path="export\windows\neko\haxe" />
+    <class path="export\flash\haxe" />
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="flixel=3.3.6&#xA;openfl=2.1.6&#xA;lime=2.0.0&#xA;tools=2.0.0&#xA;lime-legacy&#xA;no-compilation&#xA;advanced-telemetry&#xA;FLX_NO_SOUND_SYSTEM&#xA;native&#xA;lime-native&#xA;openfl-native&#xA;FLX_NO_SOUND_TRAY&#xA;windows&#xA;desktop" />
+    <option directives="flixel=3.3.6&#xA;openfl=2.1.6&#xA;lime=2.0.0&#xA;tools=2.0.0&#xA;FLX_NO_DEBUG&#xA;no-compilation&#xA;advanced-telemetry&#xA;FLX_NO_SOUND_SYSTEM&#xA;openfl-flash&#xA;FLX_NO_SOUND_TRAY&#xA;web" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
     <option mainClass="ApplicationMain" />
     <option enabledebug="True" />
-    <option additional="--remap flash:openfl&#xA;--macro flixel.system.macros.FlxConditionals.run()&#xA;#--macro keep(&quot;Main&quot;)&#xA;-debug " />
+    <option additional="--macro flixel.system.macros.FlxConditionals.run()&#xA;-swf-version 11.8" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
