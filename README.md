@@ -14,8 +14,8 @@ Currently in alpha, not recommended for production environments. Big refactoring
  
 ### Live Demo
 
- * [Flash](https://dl.dropboxusercontent.com/u/18504814/FlxIsoTilemap/flash/index.html)
- * [HTML5](https://dl.dropboxusercontent.com/u/18504814/FlxIsoTilemap/html5/index.html)
+ * [Flash](http://tiagoling.com/uploads/iso_tilemap/flash/index.html)
+ * [HTML5](http://tiagoling.com/uploads/iso_tilemap/html5/index.html)
  
 ### To do:
 
