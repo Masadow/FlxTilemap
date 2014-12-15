@@ -10,6 +10,9 @@ class Astar
 	public var useDiagonal:Bool;
 	public var useCuttingCorners:Bool;
 	
+	//Set as true to trace 'findPath' method time
+	public var debug:Bool;
+	
 	var _map:Array<Array<Int>>;
 	
 	var _startNode:Node;
@@ -38,6 +41,8 @@ class Astar
 		this.useDiagonal = useDiagonal;
 		this.useCuttingCorners = useCuttingCorners;
 		
+		debug = false;
+		
 		distMethod != null ? setDistanceMethod(distMethod) : setDistanceMethod(DistanceMethod.Manhattan);
 	}
 	
@@ -48,7 +53,19 @@ class Astar
 	/**
 	 * Finds and returns the path (Array) from sartNode to targetNode
 	 */
-	public function findPath(startNode:Node, targetNode:Node):Array<Node> {	
+	public function findPath(startNode:Node, targetNode:Node):Array<Node> {
+		
+		var startTime = 0;
+		if (debug) {
+			startTime = openfl.Lib.getTimer();
+			trace('findPath -> startTime : $startTime milliseconds');
+		}
+		
+		//Check if node is inside the map boundaries, if not don't search
+		//Not working - check isotilemap
+		if (targetNode.x >= _map[0].length || targetNode.x < 0 || targetNode.y >= _map.length || targetNode.y < 0)
+		return null;
+		
 		_path = new Array<Node>();
 		_openList = new Array<Node>();
 		_closedList = new Array<Node>();
@@ -141,6 +158,11 @@ class Astar
 			}
 		}
 		
+		if (debug) {
+			var endTime = openfl.Lib.getTimer();
+			trace('Find path done : ${endTime - startTime} milliseconds');
+		}
+		
 		return _path;
 	}
 	
@@ -151,8 +173,9 @@ class Astar
 		var closed:Node = containsNode(_closedList, x + "-" + y);
 		if (closed != null) return;
 		
-		//var newNode:Node = new Node(x, y, parentNode, cost);
 		var newNode:Node = {x:x, y:y, name:'$x-$y', FCost:0, GCost:cost, HCost:0, parent:parentNode};
+		//var newNode:Node = new Node(x, y, '$x-$y', 0, cost, 0, parentNode);
+		
 		var existingNode:Node = containsNode(_openList, newNode.name);
 		
 		newNode.HCost = calculateDinstance(newNode);
@@ -162,7 +185,7 @@ class Astar
 		if(existingNode == null) {
 			add(_openList, newNode);
 		} else {
-			if (!useDiagonal) return
+			if (!useDiagonal || existingNode == null) return;
 			if (existingNode.GCost > newNode.GCost)
 				existingNode = newNode;
 		}
@@ -289,6 +312,26 @@ typedef Node = {
 	HCost:Float,
 	parent:Node
 }
+
+/*class Node {
+	public var x:Int;
+	public var y:Int;
+	public var name:String;
+	public var FCost:Int;
+	public var GCost:Int;
+	public var HCost:Float;
+	public var parent:Node;
+	
+	public function new (x:Int, y:Int, name:String, FCost:Int, GCost:Int, HCost:Float, parent:Node = null) {
+		this.x = x;
+		this.y = y;
+		this.name = name;
+		this.FCost = FCost;
+		this.GCost = GCost;
+		this.HCost = HCost;
+		this.parent = parent;
+	}
+}*/
 
 enum DistanceMethod {
 	Euclidian;

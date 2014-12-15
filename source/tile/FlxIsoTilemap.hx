@@ -643,7 +643,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			//TODO: Check if using this could remove interaction with _point in drawTilemap()
 			//getScreenPosition(_point, camera).add(buffer.x, buffer.y).copyToFlash(_flashPoint);
 			buffer.draw(camera, _flashPoint, scale.x, scale.y);
-			#else			
+			#else
 			drawTilemap(buffer, camera);
 			#end
 			
@@ -841,17 +841,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var mapX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
 		var mapY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
 		
-		if (mapX < 0)
-			mapX = 0;
-		if (mapX > widthInTiles - 1)
-			mapX = widthInTiles - 1;
-			
-		if (mapY < 0)
-			mapY = 0;
-		if (mapY > heightInTiles - 1)
-			mapY = heightInTiles - 1;
-			
-		var isoContainer = _mapContainers[mapY][mapX];
+		var isoContainer = null;
+		if (mapX >= 0 && mapX < widthInTiles - 1 && mapY >=0 && mapY < heightInTiles - 1) {
+			isoContainer = _mapContainers[mapY][mapX];
+		}
 		
 		return isoContainer;
 	}
@@ -1111,7 +1104,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	#else
 		var scaleX:Float = scale.x * Camera.totalScaleX;
 		var scaleY:Float = scale.y * Camera.totalScaleY;
-		
 		var hackScaleX:Float = tileScaleHack * scaleX;
 		var hackScaleY:Float = tileScaleHack * scaleY;
 		
@@ -1208,6 +1200,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						//Sprite
 						charDrawItem.setDrawData(FlxPoint.weak(charX, charY), _isoObject.sprite.frame.tileID, _matrix, isColored, color, alpha);
 					} else {
+						_matrix.scale(hackScaleX, hackScaleY);
 						drawItem.setDrawData(FlxPoint.weak(drawPt.x * hackScaleX, drawPt.y * hackScaleY), _isoObject.index, _matrix, isColored, color, alpha);
 					}
 				#end
@@ -1477,7 +1470,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		// Figure out how far each of the tiles is from the starting tile
 		var distances:Array<Int> = computePathDistance(startIndex, endIndex, WideDiagonal);
-		//trace( "distances : " + distances );
 		
 		if (distances == null)
 		{

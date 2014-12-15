@@ -117,6 +117,7 @@ class PlayState extends FlxState
 		var mapData:Array<Array<Int>> = mapGen.extractData();
 		
 		aStar = new Astar(mapData, false, false);
+		aStar.debug = true;
 		
 		//Isometric tilemap
 		if (CULLING_DEBUG)
@@ -340,11 +341,17 @@ class PlayState extends FlxState
 				var wPos = FlxG.mouse.getWorldPosition(mapCam);
 				//Player target tile
 				var tile = map.getIsoTileByCoords(wPos);
+				
+				if (tile == null)
+					return;
+				
 				trace('Player -> Target tile position : ${tile.isoPos.x},${tile.isoPos.y} | Map : ${tile.mapPos.x},${tile.mapPos.y}');
 				
 				//TODO: Create a method to simplify using the Node typedef
 				var current:Node = {x:player.isoContainer.mapPos.x, y:player.isoContainer.mapPos.y, name:'${player.isoContainer.mapPos.x}-${player.isoContainer.mapPos.y}', FCost:0, GCost:0, HCost:0, parent:null};
+				//var current:Node = new Node(player.isoContainer.mapPos.x, player.isoContainer.mapPos.y, '${player.isoContainer.mapPos.x}-${player.isoContainer.mapPos.y}', 0, 0, 0, null);
 				var target:Node = { x:tile.mapPos.x, y:tile.mapPos.y, name:'${tile.mapPos.x}-${tile.mapPos.y}', FCost:0, GCost:0, HCost:0, parent:null };
+				//var target:Node = new Node(tile.mapPos.x, tile.mapPos.y, '${tile.mapPos.x}-${tile.mapPos.y}', 0, 0, 0, null);
 				
 				var path = aStar.findPath(current, target);
 				
