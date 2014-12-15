@@ -39,9 +39,6 @@ class IsoContainer
 	 */
 	public var mapPos:MapPos;
 	
-	//TEMP
-	public var dataIndex:Int;
-	
 	public function new(sprite:FlxIsoSprite) 
 	{
 		this.sprite = sprite;
@@ -74,9 +71,23 @@ class IsoContainer
 		mapPos.y = y;
 	}
 	
+	public function clone():IsoContainer
+	{
+		var container = new IsoContainer(null);
+		
+		container.isoPos = this.isoPos;
+		container.depth = this.depth;
+		container.sprite = this.sprite;
+		container.depthModifier = this.depthModifier;
+		container.index = this.index;
+		container.mapPos = this.mapPos;
+		
+		return container;
+	}
+	
 	public function toString():String
 	{
-		return "IsoContainer at '" + mapPos.x + "," + mapPos.y + "' - type : '" + index + "' - pos : " + isoPos.toString() + " - depth : " + depth + " - modifier : " + depthModifier + " - sprite : " + sprite;
+		return "IsoContainer at '" + mapPos.x + "," + mapPos.y + "' - index : '" + index + "' - pos : " + isoPos.toString() + " - depth : " + depth + " - modifier : " + depthModifier + " - sprite : " + sprite;
 	}
 }
 

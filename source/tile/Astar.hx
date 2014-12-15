@@ -62,7 +62,6 @@ class Astar
 		}
 		
 		//Check if node is inside the map boundaries, if not don't search
-		//Not working - check isotilemap
 		if (targetNode.x >= _map[0].length || targetNode.x < 0 || targetNode.y >= _map.length || targetNode.y < 0)
 		return null;
 		
@@ -174,7 +173,6 @@ class Astar
 		if (closed != null) return;
 		
 		var newNode:Node = {x:x, y:y, name:'$x-$y', FCost:0, GCost:cost, HCost:0, parent:parentNode};
-		//var newNode:Node = new Node(x, y, '$x-$y', 0, cost, 0, parentNode);
 		
 		var existingNode:Node = containsNode(_openList, newNode.name);
 		
@@ -312,26 +310,6 @@ typedef Node = {
 	HCost:Float,
 	parent:Node
 }
-
-/*class Node {
-	public var x:Int;
-	public var y:Int;
-	public var name:String;
-	public var FCost:Int;
-	public var GCost:Int;
-	public var HCost:Float;
-	public var parent:Node;
-	
-	public function new (x:Int, y:Int, name:String, FCost:Int, GCost:Int, HCost:Float, parent:Node = null) {
-		this.x = x;
-		this.y = y;
-		this.name = name;
-		this.FCost = FCost;
-		this.GCost = GCost;
-		this.HCost = HCost;
-		this.parent = parent;
-	}
-}*/
 
 enum DistanceMethod {
 	Euclidian;

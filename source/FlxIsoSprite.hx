@@ -16,6 +16,9 @@ class FlxIsoSprite extends FlxSprite
 	public var map:FlxIsoTilemap;
 	public var mustSort:Bool;
 	
+	//Layer which contains this sprite
+	public var layer:Int;
+	
 	var isoFacing:Int;
 	
 	public function new(X:Float = 0, Y:Float = 0, ?SimpleGraphic:Dynamic) 
@@ -55,6 +58,9 @@ class FlxIsoSprite extends FlxSprite
 		
 		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY + map._tileDepth));
 		
+		if (newTile == null)
+			return;
+			
 		isoContainer.mapPos = newTile.mapPos;
 		isoContainer.depth = Std.int(newIsoY * isoContainer.depthModifier + newIsoX);
 		

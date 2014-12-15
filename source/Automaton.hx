@@ -20,7 +20,7 @@ class Automaton extends FlxIsoSprite
 	{
 		super(X, Y, SimpleGraphic);
 		
-		loadGraphic("images/char_4_64.png", true, 64, 96);
+		loadGraphic("images/char_64.png", true, 64, 96);
 		
 		animation.add("idle_se", [0], 12, true);
 		animation.add("idle_sw", [3], 12, true);

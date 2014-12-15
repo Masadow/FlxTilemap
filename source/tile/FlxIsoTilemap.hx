@@ -172,8 +172,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	/**
 	 * Layer system variables (work in progress)
 	 */
-	private var _layers:Array<Array<IsoContainer>>;
-	private var _layersType:Array<Int>;
+	private var _layers:Array<MapLayer>;
+	
 	private var doSort:Bool;
 	
 	//Helper point to draw sprites with offset
@@ -197,8 +197,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		drawPt = new Point(0, 0);
 		_flashSpritePt = new Point(0, 0);
 		
-		_layers = new Array<Array<IsoContainer>>();
-		_layersType = new Array<Int>();
+		_layers = new Array<MapLayer>();
 		
 		doSort = true;
 		
@@ -404,8 +403,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				//Storing column and row position
 				container.setMap(column, row);
 				
-				container.dataIndex = columnIndex;
-				
 				_mapContainers[row][column] = container;
 				
 				column++;
@@ -430,22 +427,22 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 * to its position inside the sorted array
 	 * @param	Sprite	The FlxIsoSprite to be added to the map
 	 */
-	public function add(Sprite:FlxIsoSprite):Void
+	public function add(Sprite:FlxIsoSprite, layer:Int):Void
 	{
 		spriteGroup.add(Sprite);
 		Sprite.map = this;
+		Sprite.layer = layer;
 		Sprite.cameras = [];
 	}
 	
-	//TODO: Finish setting up layer system
-	public function addLayer(firstIndex:Int, length:Int, type:Int)
+	/**
+	 * Adds a layer to the map. Currently layers work with only one tileset,
+	 * loaded through one of 'loadMap' methods
+	 * @param	layer	A MapLayer typedef to be added
+	 */
+	public function addLayer(layer:MapLayer)
 	{
-		//TODO: Store tile indices for each layer - i.e. Store the types of tiles which will be put inside each layer
-		_layers.push(new Array<IsoContainer>());
-		
-		//Types -> 0 : static | 1 : dynamic
-		_layersType.push(type);
-		
+		_layers.push(layer);
 	}
 	
 	override public function update(elapsed:Float):Void
@@ -477,31 +474,25 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var mapX:Int = 0;
 		var mapY:Int = 0;
 		
-		var staticCount:Int = 0;
-		var dynamicCount:Int = 0;
+		for (layer in _layers) {
+			layer.drawStack = [];
+		}
 		
-		//Must find a fast way to empty exceeding indices in the arrays, so they won't get over drawn
-		//TODO: Finish layer system
-		_layers[0] = [];
-		_layers[1] = [];
-		
-		for (i in 0...rowCount) {
-			for (j in 0...colCount) {
-				mapX = tileX + j + Std.int(i / 2) + (i % 2);
-				mapY = tileY - j + Std.int(i / 2);
-				
-				if (mapY < 0 || mapX < 0 || mapY >= heightInTiles || mapX >= widthInTiles) {
-					continue;
-				} else {
-					//TODO: Finish layer system
-					if (_mapContainers[mapY][mapX].index == 0 || _mapContainers[mapY][mapX].index == 1) {
-						//Add to the first layer (static)
-						_layers[0][staticCount] = _mapContainers[mapY][mapX];
-						staticCount++;
+		for (k in 0..._layers.length) {
+			var layerCount:Int = 0;
+			for (i in 0...rowCount) {
+				for (j in 0...colCount) {
+					mapX = tileX + j + Std.int(i / 2) + (i % 2);
+					mapY = tileY - j + Std.int(i / 2);
+					
+					if (mapY < 0 || mapX < 0 || mapY >= heightInTiles || mapX >= widthInTiles) {
+						continue;
 					} else {
-						//Add to second layer (dynamic)
-						_layers[1][dynamicCount] = _mapContainers[mapY][mapX];
-						dynamicCount++;
+						var layer = _layers[k];
+						if (layer.data[mapY][mapX].index > -1) {
+							layer.drawStack[layerCount] = layer.data[mapY][mapX];
+							layerCount++;
+						}
 					}
 				}
 			}
@@ -510,16 +501,18 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		for (spr in spriteGroup.members)
 		{
 			spr.update(elapsed);
-			_layers[1][dynamicCount] = spr.isoContainer;
+			var layer = _layers[spr.layer];
+			layer.drawStack[layer.drawStack.length] = spr.isoContainer;
 			
 			if (spr.mustSort)
 				doSort = true;
-				
-			dynamicCount++;
 		}
 		
 		if (doSort) {
-			IsoUtils.sortRange(_layers[1], IsoUtils.compareNumberRise, 0, _layers[1].length);
+			for (layer in _layers) {
+				if (layer.type == 1)
+					IsoUtils.sortRange(layer.drawStack, IsoUtils.compareNumberRise, 0, layer.drawStack.length);
+			}
 		}
 	}
 	
@@ -566,13 +559,17 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
 		
 		for (i in 0..._layers.length) {
-			for (j in 0..._layers[i].length) {
+			for (j in 0..._layers[i].drawStack.length) {
 					
-					//TODO: Optimize array access ?
-					drawX = (_layers[i][j].isoPos.x - _point.x) - _scaledTileWidth / 2;
-					drawY = (_layers[i][j].isoPos.y - _point.y) - ((_scaledTileHeight) / 2);
+					var isoCont = _layers[i].drawStack[j];
 					
-					_tile = _tileObjects[_layers[i][j].index];
+					if (isoCont == null || isoCont.index == -1)
+						continue;
+						
+					drawX = (isoCont.isoPos.x - _point.x) - _scaledTileWidth / 2;
+					drawY = (isoCont.isoPos.y - _point.y) - ((_scaledTileHeight) / 2);
+					
+					_tile = _tileObjects[isoCont.index];
 					
 					if (_tile != null)
 					{
@@ -783,9 +780,9 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		return results;
 	}
 
-	public function setIsoTile(X:Int, Y:Int, Index:Int):Void
+	public function setIsoTile(X:Int, Y:Int, Index:Int, layer:Int = 0):Void
 	{
-		var isoContainer = _mapContainers[X][Y];
+		var isoContainer = _layers[layer].data[X][Y];
 		isoContainer.index = Index;
 	}
 	
@@ -828,7 +825,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 * @param	Coord	The world coordinates of the tile
 	 * @return
 	 */
-	public function getIsoTileByCoords(Coord:FlxPoint):IsoContainer
+	public function getIsoTileByCoords(Coord:FlxPoint, layer:Int = 0):IsoContainer
 	{
 		//Map offset
 		var screenOffsetX = _mapFrameRect.width / 2;
@@ -843,38 +840,48 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		var isoContainer = null;
 		if (mapX >= 0 && mapX < widthInTiles - 1 && mapY >=0 && mapY < heightInTiles - 1) {
-			isoContainer = _mapContainers[mapY][mapX];
+			isoContainer = _layers[layer].data[mapY][mapX];
 		}
 		
 		return isoContainer;
 	}
 	
-	public function getIsoTileByMapCoords(X:Int, Y:Int):IsoContainer
+	
+	public function getIsoTileByMapCoords(X:Int, Y:Int, layer:Int = 0):IsoContainer
 	{
-		return _mapContainers[Y][X];
+		return _layers[layer].data[Y][X];
 	}
 	
-	public function getIsoTileAt(Index:Int):IsoContainer
+	/**
+	 * Creates 2D map data layer from an array of tiles
+	 * @param	tileIds	An array containing tileset indices
+	 * @param	type Layer type (0 = Static, 1 = Dynamic)
+	 * @param	fillIndex The tile id to use for blank spaces in the map (-1 does not get drawn)
+	 * @return	A MapLayer object
+	 */
+	public function createLayerFromTileArray(tileIds:Array<Int>, type:Int, fillIndex:Int = -1):MapLayer
 	{
-		return null;
-	}
-	
-	override public function getTileIndexByCoords(Coord:FlxPoint):Int
-	{
-		var result = Std.int((Coord.y - y) / (_scaledTileDepth + _scaledTileHeight)) * widthInTiles + Std.int((Coord.x - x) / _scaledTileWidth);
-		Coord.putWeak();
-		return result;
-	}
-	
-	override public function getTileCoordsByIndex(Index:Int, Midpoint:Bool = true):FlxPoint
-	{
-		var point = FlxPoint.get(x + (Index % widthInTiles) * _scaledTileWidth, y + Std.int(Index / widthInTiles) * (_scaledTileDepth + _scaledTileHeight));
-		if (Midpoint)
-		{
-			point.x += _scaledTileWidth * 0.5;
-			point.y += (_scaledTileDepth + _scaledTileHeight) * 0.5;
+		var data = new Array<Array<IsoContainer>>();
+		
+		if (_mapContainers == null)
+			return null;
+			
+		for (i in 0...heightInTiles) {
+			data[i] = new Array<IsoContainer>();
+			for (j in 0...widthInTiles) {
+				data[i][j] = _mapContainers[i][j].clone();
+				var changeIndex = true;
+				for (k in 0...tileIds.length) {
+					if (tileIds[k] == _mapContainers[i][j].index)
+						changeIndex = false;
+				}
+				if (changeIndex)
+					data[i][j].index = fillIndex;
+			}
 		}
-		return point;
+			
+		var mapLayer = { data:data, drawStack:new Array<IsoContainer>(), type:type };
+		return mapLayer;
 	}
 	
 	/**
@@ -1120,9 +1127,13 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		#end 
 		
 		for (i in 0..._layers.length) {
-			for (j in 0..._layers[i].length) {
+			var layer = _layers[i];
+			for (j in 0...layer.drawStack.length) {
 				
-				_isoObject = _layers[i][j];
+				_isoObject = layer.drawStack[j];
+				
+				if (_isoObject == null || _isoObject.index == -1)
+					continue;
 				
 				drawPt.x = _isoObject.isoPos.x - _point.x;
 				drawPt.y = _isoObject.isoPos.y - _point.y;
@@ -1441,437 +1452,21 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		}
 	}
 	
-	/**
-	 * Find a path through the tilemap.  Any tile with any collision flags set is treated as impassable.
-	 * If no path is discovered then a null reference is returned.
-	 * (WARNING: Do not work with Iso - Use tile.Astar instead)
-	 * 
-	 * @param	Start		The start point in world coordinates.
-	 * @param	End			The end point in world coordinates.
-	 * @param	Simplify	Whether to run a basic simplification algorithm over the path data, removing extra points that are on the same line.  Default value is true.
-	 * @param	RaySimplify	Whether to run an extra raycasting simplification algorithm over the remaining path data.  This can result in some close corners being cut, and should be used with care if at all (yet).  Default value is false.
-	 * @param   WideDiagonal   Whether to require an additional tile to make diagonal movement. Default value is true;
-	 * @return	An Array of FlxPoints, containing all waypoints from the start to the end.  If no path could be found, then a null reference is returned.
-	 */
 	override public function findPath(Start:FlxPoint, End:FlxPoint, Simplify:Bool = true, RaySimplify:Bool = false, WideDiagonal:Bool = true):Array<FlxPoint>
 	{
-		// Figure out what tile we are starting and ending on.
-		var startTile = getIsoTileByCoords(Start);
-		var startIndex:Int = startTile.dataIndex;
-		
-		var endTile = getIsoTileByCoords(End);
-		var endIndex:Int = endTile.dataIndex;
-		
-		// Check that the start and end are clear.
-		if ((_tileObjects[_data[startIndex]].allowCollisions > 0) || (_tileObjects[_data[endIndex]].allowCollisions > 0))
-		{
-			return null;
-		}
-		
-		// Figure out how far each of the tiles is from the starting tile
-		var distances:Array<Int> = computePathDistance(startIndex, endIndex, WideDiagonal);
-		
-		if (distances == null)
-		{
-			return null;
-		}
-
-		// Then count backward to find the shortest path.
-		var points:Array<FlxPoint> = new Array<FlxPoint>();
-		walkPath(distances, endIndex, points);
-		
-		// Reset the start and end points to be exact
-		var node:FlxPoint;
-		node = points[points.length-1];
-		node.copyFrom(Start);
-		node = points[0];
-		node.copyFrom(End);
-
-		// Some simple path cleanup options
-		if (Simplify)
-		{
-			simplifyPath(points);
-		}
-		if (RaySimplify)
-		{
-			raySimplifyPath(points);
-		}
-		
-		// Finally load the remaining points into a new path object and return it
-		var path:Array<FlxPoint> = [];
-		var i:Int = points.length - 1;
-		
-		while (i >= 0)
-		{
-			node = points[i--];
-			
-			if (node != null)
-			{
-				path.push(node);
-			}
-		}
-		
-		return path;
+		trace('findPath method does not work with FlxIsoTilemap. Use external class tile.AStar instead');
+		return null;
 	}
 	
-	/**
-	 * Pathfinding helper function, floods a grid with distance information until it finds the end point.
-	 * NOTE: Currently this process does NOT use any kind of fancy heuristic! It's pretty brute.
-	 * (WARNING: Do not work with Iso - Use tile.Astar instead)
-	 * 
-	 * @param	StartIndex		The starting tile's map index.
-	 * @param	EndIndex		The ending tile's map index.
-	 * @param	WideDiagonal	Whether to require an additional tile to make diagonal movement. Default value is true.
-	 * @param	StopOnEnd		Whether to stop at the end or not (default true)
-	 * @return	A Flash Array of FlxPoint nodes.  If the end tile could not be found, then a null Array is returned instead.
-	 */
 	override public function computePathDistance(StartIndex:Int, EndIndex:Int, WideDiagonal:Bool, StopOnEnd:Bool = true):Array<Int>
 	{
-		// Create a distance-based representation of the tilemap.
-		// All walls are flagged as -2, all open areas as -1.
-		var mapSize:Int = widthInTiles * heightInTiles;
-		var distances:Array<Int> = new Array<Int>(/*mapSize*/);
-		FlxArrayUtil.setLength(distances, mapSize);
-		var i:Int = 0;
-		
-		while (i < mapSize)
-		{
-			if (_tileObjects[_data[i]].allowCollisions != FlxObject.NONE)
-			{
-				distances[i] = -2;
-			}
-			else
-			{
-				distances[i] = -1;
-			}
-			i++;
-		}
-		
-		distances[StartIndex] = 0;
-		var distance:Int = 1;
-		var neighbors:Array<Int> = [StartIndex];
-		var current:Array<Int>;
-		var currentIndex:Int;
-		var left:Bool;
-		var right:Bool;
-		var up:Bool;
-		var down:Bool;
-		var currentLength:Int;
-		var foundEnd:Bool = false;
-		
-		while (neighbors.length > 0)
-		{
-			current = neighbors;
-			neighbors = new Array<Int>();
-			
-			i = 0;
-			currentLength = current.length;
-			while (i < currentLength)
-			{
-				currentIndex = current[i++];
-				
-				if (currentIndex == Std.int(EndIndex))
-				{
-					foundEnd = true;
-					if (StopOnEnd)
-					{
-						neighbors = [];
-						break;
-					}
-				}
-				
-				// Basic map bounds
-				left = currentIndex % widthInTiles > 0;
-				right = currentIndex % widthInTiles < widthInTiles - 1;
-				up = currentIndex / widthInTiles > 0;
-				down = currentIndex / widthInTiles < heightInTiles - 1;
-				
-				var index:Int;
-				
-				if (up)
-				{
-					index = currentIndex - widthInTiles;
-					
-					if (distances[index] == -1)
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (right)
-				{
-					index = currentIndex + 1;
-					
-					if (distances[index] == -1)
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (down)
-				{
-					index = currentIndex + widthInTiles;
-					
-					if (distances[index] == -1)
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (left)
-				{
-					index = currentIndex - 1;
-					
-					if (distances[index] == -1)
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (up && right)
-				{
-					index = currentIndex - widthInTiles + 1;
-					
-					if (WideDiagonal && (distances[index] == -1) && (distances[currentIndex-widthInTiles] >= -1) && (distances[currentIndex+1] >= -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-					else if (!WideDiagonal && (distances[index] == -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (right && down)
-				{
-					index = currentIndex + widthInTiles + 1;
-					
-					if (WideDiagonal && (distances[index] == -1) && (distances[currentIndex+widthInTiles] >= -1) && (distances[currentIndex+1] >= -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-					else if (!WideDiagonal && (distances[index] == -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (left && down)
-				{
-					index = currentIndex + widthInTiles - 1;
-					
-					if (WideDiagonal && (distances[index] == -1) && (distances[currentIndex+widthInTiles] >= -1) && (distances[currentIndex-1] >= -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-					else if (!WideDiagonal && (distances[index] == -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-				if (up && left)
-				{
-					index = currentIndex - widthInTiles - 1;
-					
-					if (WideDiagonal && (distances[index] == -1) && (distances[currentIndex-widthInTiles] >= -1) && (distances[currentIndex-1] >= -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-					else if (!WideDiagonal && (distances[index] == -1))
-					{
-						distances[index] = distance;
-						neighbors.push(index);
-					}
-				}
-			}
-			
-			distance++;
-		}
-		if (!foundEnd)
-		{
-			distances = null;
-		}
-		
-		return distances;
+		trace('computePathDistance method does not work with FlxIsoTilemap. Use external class tile.AStar instead');
+		return null;
 	}
+}
 
-	/**
-	 * Pathfinding helper function, recursively walks the grid and finds a shortest path back to the start.
-	 * (WARNING: Do not work with Iso - Use tile.Astar instead)
-	 * 
-	 * @param	Data	A Flash Array of distance information.
-	 * @param	Start	The tile we're on in our walk backward.
-	 * @param	Points	A Flash Array of FlxPoint nodes composing the path from the start to the end, compiled in reverse order.
-	 */
-	override private function walkPath(Data:Array<Int>, Start:Int, Points:Array<FlxPoint>):Void
-	{
-		Points.push(FlxPoint.weak().copyFromFlash(getIsoTileAt(Start).isoPos));
-		
-		if (Data[Start] == 0)
-		{
-			return;
-		}
-		
-		// Basic map bounds
-		var left:Bool = (Start % widthInTiles) > 0;
-		var right:Bool = (Start % widthInTiles) < (widthInTiles - 1);
-		var up:Bool = (Start / widthInTiles) > 0;
-		var down:Bool = (Start / widthInTiles) < (heightInTiles - 1);
-		
-		var current:Int = Data[Start];
-		var i:Int;
-		
-		if (up)
-		{
-			i = Start - widthInTiles;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (right)
-		{
-			i = Start + 1;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (down)
-		{
-			i = Start + widthInTiles;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (left)
-		{
-			i = Start - 1;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (up && right)
-		{
-			i = Start - widthInTiles + 1;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (right && down)
-		{
-			i = Start + widthInTiles + 1;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (left && down)
-		{
-			i = Start + widthInTiles - 1;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		if (up && left)
-		{
-			i = Start - widthInTiles - 1;
-			
-			if (i >= 0 && (Data[i] >= 0) && (Data[i] < current))
-			{
-				return walkPath(Data, i, Points);
-			}
-		}
-		
-		return;
-	}
-
-	/**
-	 * Pathfinding helper function, strips out extra points on the same line.
-	 * (WARNING: Do not work with Iso - Use tile.Astar instead)
-	 * 
-	 * @param	Points		An array of FlxPoint nodes.
-	 */
-	override private function simplifyPath(Points:Array<FlxPoint>):Void
-	{
-		var deltaPrevious:Float;
-		var deltaNext:Float;
-		var last:FlxPoint = Points[0];
-		var node:FlxPoint;
-		var i:Int = 1;
-		var l:Int = Points.length - 1;
-		
-		while (i < l)
-		{
-			node = Points[i];
-			deltaPrevious = (node.x - last.x)/(node.y - last.y);
-			deltaNext = (node.x - Points[i + 1].x) / (node.y - Points[i + 1].y);
-			
-			if ((last.x == Points[i + 1].x) || (last.y == Points[i + 1].y) || (deltaPrevious == deltaNext))
-			{
-				Points[i] = null;
-			}
-			else
-			{
-				last = node;
-			}
-			
-			i++;
-		}
-	}
-	
-	/**
-	 * Pathfinding helper function, strips out even more points by raycasting from one point to the next and dropping unnecessary points.
-	 * (WARNING: Do not work with Iso - Use tile.Astar instead)
-	 * 
-	 * @param	Points		An array of FlxPoint nodes.
-	 */
-	override private function raySimplifyPath(Points:Array<FlxPoint>):Void
-	{
-		var source:FlxPoint = Points[0];
-		var lastIndex:Int = -1;
-		var node:FlxPoint;
-		var i:Int = 1;
-		var l:Int = Points.length;
-		
-		while (i < l)
-		{
-			node = Points[i++];
-			
-			if (node == null)
-			{
-				continue;
-			}
-			
-			if (ray(source,node,_point))
-			{
-				if (lastIndex >= 0)
-				{
-					Points[lastIndex] = null;
-				}
-			}
-			else
-			{
-				source = Points[lastIndex];
-			}
-			
-			lastIndex = i - 1;
-		}
-	}
+typedef MapLayer = {
+	data:Array<Array<IsoContainer>>,
+	drawStack:Array<IsoContainer>,
+	type:Int
 }

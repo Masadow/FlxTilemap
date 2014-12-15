@@ -128,16 +128,27 @@ class PlayState extends FlxState
 		//TODO: Make it setable through the constructor
 		map._tileDepth = 32;
 		
-		//Static layer
-		map.addLayer(0, 2, 0);
-		//Dynamic layer
-		map.addLayer(2, 16, 1);
+		//Old tileset, walls had ground tiles drawn in their frames to account for only one tile layer
+		//map.loadMapFrom2DArray(mapData, "images/tileset_64.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		
-		map.loadMapFrom2DArray(mapData, "images/tileset_64.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		//Tileset without ground tiles drawn in the walls (only works with layers)
+		map.loadMapFrom2DArray(mapData, "images/tileset_64_exp.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.adjustTiles();
+		
 		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
 		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
 		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
+		
+		//Layer setup
+		//Static layer
+		var tileRange = [0, 1, 2];
+		var groundLayer = map.createLayerFromTileArray(tileRange, 0, 1);
+		map.addLayer(groundLayer);
+		//Dynamic layer
+		tileRange = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+		var midLayer = map.createLayerFromTileArray(tileRange, 1, -1);
+		map.addLayer(midLayer);
+		
 		map.cameras = [mapCam];
 		#if debug
 		map.ignoreDrawDebug = true;
@@ -148,7 +159,7 @@ class PlayState extends FlxState
 		player = new Player(0, 0);
 		player.ID = 10;
 		player.set_camera(mapCam);
-		map.add(player);
+		map.add(player, 1);
 		//Setting player position
 		var initialTile = map.getIsoTileByMapCoords(2, 2);
 		player.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
@@ -293,8 +304,8 @@ class PlayState extends FlxState
 			for (i in 0...10)
 			{
 				var automaton = new Automaton(0, 0);
-				map.add(automaton);
-				var initialTile = map.getIsoTileByMapCoords(6, 6);
+				map.add(automaton, 1);
+				var initialTile = player.isoContainer;
 				automaton.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 			}
 		}
@@ -349,9 +360,7 @@ class PlayState extends FlxState
 				
 				//TODO: Create a method to simplify using the Node typedef
 				var current:Node = {x:player.isoContainer.mapPos.x, y:player.isoContainer.mapPos.y, name:'${player.isoContainer.mapPos.x}-${player.isoContainer.mapPos.y}', FCost:0, GCost:0, HCost:0, parent:null};
-				//var current:Node = new Node(player.isoContainer.mapPos.x, player.isoContainer.mapPos.y, '${player.isoContainer.mapPos.x}-${player.isoContainer.mapPos.y}', 0, 0, 0, null);
 				var target:Node = { x:tile.mapPos.x, y:tile.mapPos.y, name:'${tile.mapPos.x}-${tile.mapPos.y}', FCost:0, GCost:0, HCost:0, parent:null };
-				//var target:Node = new Node(tile.mapPos.x, tile.mapPos.y, '${tile.mapPos.x}-${tile.mapPos.y}', 0, 0, 0, null);
 				
 				var path = aStar.findPath(current, target);
 				
@@ -361,15 +370,19 @@ class PlayState extends FlxState
 				}
 					
 				var ptArr = new Array<FlxPoint>();
+				var originalTileIndices = [];
 				for (i in 0...path.length) {
 					var tile = map.getIsoTileByMapCoords(path[i].x, path[i].y);
+					originalTileIndices.push(tile.index);
 					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, 18);
 					ptArr.push(FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 1.5));
 				}
 				
+				var count = 0;
 				timer.start(0.2, function (t:FlxTimer) {
 					var tile = map.getIsoTileByMapCoords(path[t.elapsedLoops - 1].x, path[t.elapsedLoops - 1].y);
-					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, 1);
+					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, originalTileIndices[count]);
+					count++;
 				}, path.length);
 				
 				//Walks directly to target
