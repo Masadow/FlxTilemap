@@ -201,7 +201,8 @@ class Astar
 	 * Checks weather the poInt is walkable
 	 */
 	private function isWalkable(x:Int, y:Int):Bool {
-		var walkable:Bool = _map[y][x] == 0 || _map[y][x] == 1 || _map[y][x] == 5 || _map[y][x] == 6 || _map[y][x] == 7 || _map[y][x] == 18;
+		//var walkable:Bool = _map[y][x] == 0 || _map[y][x] == 1 || _map[y][x] == 5 || _map[y][x] == 6 || _map[y][x] == 7 || _map[y][x] == 18;
+		var walkable:Bool = _map[y][x] == 0 || _map[y][x] == 1 || _map[y][x] == -1;
 		
 		if (walkable) return true;
 		

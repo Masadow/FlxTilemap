@@ -59,6 +59,19 @@ class IsoUtils
 		return a.depth - b.depth;
 	}
 	
+	public static function convertIsoToInt(data:Array<Array<IsoContainer>>):Array<Array<Int>>
+	{
+		var arr = new Array<Array<Int>>();
+		for (i in 0...data.length) {
+			arr[i] = new Array<Int>();
+			for (j in 0...data[i].length) {
+				arr[i][j] = data[i][j].index;
+			}
+		}
+		
+		return arr;
+	}
+	
 	//Bucket sort - uncomment to return 1d flattened array
 	//Currently returns a 2d array
 	//public static function bucketSort(arr:Array<IsoContainer>):Array<IsoContainer>

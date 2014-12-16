@@ -27,6 +27,7 @@ import flixel.util.FlxArrayUtil;
 import flixel.util.FlxColor;
 import flixel.util.FlxDestroyUtil;
 import flixel.util.FlxSpriteUtil;
+import haxe.Json;
 import openfl.display.BlendMode;
 import openfl.display.Tilesheet;
 import openfl.geom.ColorTransform;
@@ -846,6 +847,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		return isoContainer;
 	}
 	
+	public function getLayerAt(index:Int):MapLayer
+	{
+		return _layers[index];
+	}
 	
 	public function getIsoTileByMapCoords(X:Int, Y:Int, layer:Int = 0):IsoContainer
 	{
@@ -882,6 +887,87 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			
 		var mapLayer = { data:data, drawStack:new Array<IsoContainer>(), type:type };
 		return mapLayer;
+	}
+	
+	public function loadFromTiledJson(data:String, layerTypes:Array<Int>):Void
+	{
+		var tiledData = Json.parse(data);
+		
+		widthInTiles = Std.int(tiledData.width);
+		heightInTiles = Std.int(tiledData.height);
+		
+		var tWidth = Std.int(tiledData.tilewidth);
+		_tileDepth = Std.int(tiledData.tileheight);
+		
+		//Supports only single tileset for now
+		var tHeight = Std.int(tiledData.tilesets[0].tileheight) - _tileDepth;
+		var tGraphic = tiledData.tilesets[0].image;
+		var tiledLayers:Array<Dynamic> = tiledData.layers;
+		
+		cacheGraphics(tWidth, tHeight, tGraphic);
+		postGraphicLoad();
+		
+		for (i in 0...tiledData.layers.length) {
+			
+			var row = 0;
+			var column = 0;
+			var rowIndex = 0;
+			var columnIndex = 0;
+			var isoPoint = new Point(0, 0);
+			
+			var layerData = new Array<Array<IsoContainer>>();
+			var rawLayerData = tiledLayers[i];
+			
+			while (row < heightInTiles)
+			{
+				columnIndex = rowIndex;
+				column = 0;
+				
+				layerData[row] = new Array<IsoContainer>();
+				
+				while (column < widthInTiles)
+				{
+					
+					var screenOffsetX = FlxG.stage.stageWidth / 2;
+					var screenOffsetY = FlxG.stage.stageHeight / 2;
+					
+					isoPoint.x = screenOffsetX + (column - row) * (_scaledTileWidth / 2);
+					isoPoint.y = screenOffsetY + (column + row) * (_scaledTileDepth / 2);
+					
+					var container = new IsoContainer(null);
+						
+					//TODO: Experimenting with depthModifier var. Remove this and allow depthModifier to be set through setTileProperties()
+					if (rawLayerData.data[columnIndex] == 0 || rawLayerData.data[columnIndex] == 1) {
+						container.depthModifier = 500;	//Floor tiles
+					} else {
+						container.depthModifier = 1000;	//Wall tiles
+					}
+					
+					//Storing isometric position for tiles
+					container.setIso(isoPoint.x, isoPoint.y);
+					
+					//Calculating and storing sorting depth
+					container.depth = Std.int(isoPoint.y * container.depthModifier + isoPoint.x);
+					
+					//Storing tile type (index relative to its position inside the tileset)
+					//Subtract 1 because Tiled index count starts with 1 instead of 0
+					container.index = Std.int(rawLayerData.data[columnIndex] - 1);
+					
+					//Storing column and row position
+					container.setMap(column, row);
+					
+					layerData[row][column] = container;
+					
+					column++;
+					columnIndex++;
+				}
+				
+				rowIndex += widthInTiles;
+				row++;
+			}
+			
+			_layers[i] = { data:layerData, drawStack:new Array<IsoContainer>(), type:layerTypes[i] };
+		}
 	}
 	
 	/**

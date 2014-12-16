@@ -2,6 +2,7 @@
 
 import coffeegames.mapgen.MapAlign;
 import coffeegames.mapgen.MapGenerator;
+import experimental.IsoUtils;
 import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -16,6 +17,7 @@ import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
 import flixel.util.FlxSpriteUtil;
 import flixel.util.FlxTimer;
+import openfl.Assets;
 import openfl.display.Bitmap;
 import openfl.geom.Rectangle;
 import tile.FlxIsoTilemap;
@@ -102,7 +104,7 @@ class PlayState extends FlxState
 	function createMap()
 	{
 		//Initializing map generator
-		mapGen = new MapGenerator(mapWidth, mapHeight, 3, 5, 11, false);
+/*		mapGen = new MapGenerator(mapWidth, mapHeight, 3, 5, 11, false);
 		mapGen.setIndices(9, 8, 10, 11, 14, 16, 17, 15, 7, 5, 1, 1, 0);
 		mapGen.generate();
 		
@@ -135,10 +137,6 @@ class PlayState extends FlxState
 		map.loadMapFrom2DArray(mapData, "images/tileset_64_exp.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
 		map.adjustTiles();
 		
-		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
-		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
-		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
-		
 		//Layer setup
 		//Static layer
 		var tileRange = [0, 1, 2];
@@ -147,7 +145,18 @@ class PlayState extends FlxState
 		//Dynamic layer
 		tileRange = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 		var midLayer = map.createLayerFromTileArray(tileRange, 1, -1);
-		map.addLayer(midLayer);
+		map.addLayer(midLayer);*/
+		
+		//Testing Tiled Json
+		map = new FlxIsoTilemap(new Rectangle(0, 0, FlxG.stage.stageWidth, FlxG.stage.stageHeight));
+		map.loadFromTiledJson(Assets.getText('data/iso_map_0.json'), [0, 1]);
+		
+		aStar = new Astar(IsoUtils.convertIsoToInt(map.getLayerAt(1).data), false, false);
+		aStar.debug = true;
+		
+		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
+		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
+		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
 		
 		map.cameras = [mapCam];
 		#if debug
@@ -234,7 +243,8 @@ class PlayState extends FlxState
 		text = 'MAP SIZE - ${map.widthInTiles},${map.heightInTiles}\nTOUCH AND DRAG - Scroll Map | TOUCH MAP - Move char to map position\nTAB - Toggle minimap | ZOOM : 1';
 		#end
 		var textPos = 10;
-		var textWidth = 1280 - minimap.width - 30;
+		//var textWidth = 1280 - minimap.width - 30;
+		var textWidth = 1280 - 30;
 		instructions = new FlxText(textPos, 10, textWidth, text, 14);
 		instructions.scrollFactor.set(0, 0);
 		instructions.setBorderStyle(FlxTextBorderStyle.OUTLINE_FAST, 0x666666);
