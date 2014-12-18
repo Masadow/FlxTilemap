@@ -147,16 +147,35 @@ class PlayState extends FlxState
 		var midLayer = map.createLayerFromTileArray(tileRange, 1, -1);
 		map.addLayer(midLayer);*/
 		
+		//Height Map Test
+		
+		var height_map = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+						 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+						 [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+						 [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+						 [0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2],
+						 [0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2],
+						 [0,0,1,1,2,2,3,3,3,3,3,3,3,3,3,3],
+						 [0,0,1,1,2,2,3,3,3,3,3,3,3,3,3,3],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
+						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4]];
+						 
 		//Testing Tiled Json
 		map = new FlxIsoTilemap(new Rectangle(0, 0, FlxG.stage.stageWidth, FlxG.stage.stageHeight));
-		map.loadFromTiledJson(Assets.getText('data/iso_map_0.json'), [0, 1]);
+		map.loadFromTiledJson(Assets.getText('images/iso_height.json'), [0, 1], height_map);
 		
 		aStar = new Astar(IsoUtils.convertIsoToInt(map.getLayerAt(1).data), false, false);
 		aStar.debug = true;
 		
-		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 2);
-		map.setTileProperties(5, FlxObject.NONE, onMapCollide, null, 3);
-		map.setTileProperties(8, FlxObject.ANY, onMapCollide, null, 10);
+		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 8);
+		map.setTileProperties(8, FlxObject.NONE, onMapCollide, null, 8);
+		map.setTileProperties(16, FlxObject.ANY, onMapCollide, null, 2);
 		
 		map.cameras = [mapCam];
 		#if debug
@@ -170,7 +189,7 @@ class PlayState extends FlxState
 		player.set_camera(mapCam);
 		map.add(player, 1);
 		//Setting player position
-		var initialTile = map.getIsoTileByMapCoords(2, 2);
+		var initialTile = map.getIsoTileByMapCoords(1, 1);
 		player.setPosition(initialTile.isoPos.x, initialTile.isoPos.y);
 	}
 	
@@ -363,8 +382,10 @@ class PlayState extends FlxState
 				//Player target tile
 				var tile = map.getIsoTileByCoords(wPos);
 				
-				if (tile == null)
+				if (tile == null) {
+					trace('Tile is null, aborting');
 					return;
+				}
 				
 				trace('Player -> Target tile position : ${tile.isoPos.x},${tile.isoPos.y} | Map : ${tile.mapPos.x},${tile.mapPos.y}');
 				
@@ -384,7 +405,7 @@ class PlayState extends FlxState
 				for (i in 0...path.length) {
 					var tile = map.getIsoTileByMapCoords(path[i].x, path[i].y);
 					originalTileIndices.push(tile.index);
-					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, 18);
+					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, 6);
 					ptArr.push(FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 1.5));
 				}
 				

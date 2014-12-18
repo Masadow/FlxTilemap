@@ -889,7 +889,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		return mapLayer;
 	}
 	
-	public function loadFromTiledJson(data:String, layerTypes:Array<Int>):Void
+	public function loadFromTiledJson(data:String, layerTypes:Array<Int>, ?heightMap:Array<Array<Int>>):Void
 	{
 		var tiledData = Json.parse(data);
 		
@@ -901,6 +901,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		//Supports only single tileset for now
 		var tHeight = Std.int(tiledData.tilesets[0].tileheight) - _tileDepth;
+		
 		var tGraphic = tiledData.tilesets[0].image;
 		var tiledLayers:Array<Dynamic> = tiledData.layers;
 		
@@ -942,6 +943,12 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					} else {
 						container.depthModifier = 1000;	//Wall tiles
 					}
+					
+					//Height map
+					if (heightMap != null)
+						container.heightLevel = heightMap[row][column];
+					
+					container.depthModifier += 200 * container.heightLevel;
 					
 					//Storing isometric position for tiles
 					container.setIso(isoPoint.x, isoPoint.y);
@@ -1212,6 +1219,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var debugTile:BitmapData;
 		#end 
 		
+		var heightOffset = _tileHeight - _tileDepth;
+		
 		for (i in 0..._layers.length) {
 			var layer = _layers[i];
 			for (j in 0...layer.drawStack.length) {
@@ -1222,7 +1231,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					continue;
 				
 				drawPt.x = _isoObject.isoPos.x - _point.x;
-				drawPt.y = _isoObject.isoPos.y - _point.y;
+				drawPt.y = (_isoObject.isoPos.y - _point.y) + (_isoObject.heightLevel * heightOffset);
 				
 				_tile = _tileObjects[_isoObject.index];
 				
@@ -1232,7 +1241,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				{
 					_isoObject.sprite.draw();
 					_flashSpritePt.x = _isoObject.sprite.x - _point.x;
-					_flashSpritePt.y = _isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y;
+					_flashSpritePt.y = (_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) + (_isoObject.heightLevel * heightOffset);
 					
 					//Sprite
 					Buffer.pixels.copyPixels(_isoObject.sprite.getFlxFrameBitmapData() , frameRect, _flashSpritePt, null, null, true);
@@ -1292,7 +1301,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						
 						//Sprite position
 						var charX = (_isoObject.sprite.x - _point.x) * hackScaleX;
-						var charY = (_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) * hackScaleY;
+						var charY = ((_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) * hackScaleY) + (_isoObject.heightLevel * heightOffset);
 							
 						//Sprite
 						charDrawItem.setDrawData(FlxPoint.weak(charX, charY), _isoObject.sprite.frame.tileID, _matrix, isColored, color, alpha);

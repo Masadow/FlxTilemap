@@ -39,6 +39,8 @@ class IsoContainer
 	 */
 	public var mapPos:MapPos;
 	
+	public var heightLevel:Int;
+	
 	public function new(sprite:FlxIsoSprite) 
 	{
 		this.sprite = sprite;
@@ -47,6 +49,7 @@ class IsoContainer
 		depthModifier = -1;
 		index = -1;
 		mapPos = { x: 0, y: 0 };
+		heightLevel = 0;
 	}
 	
 	/**
