@@ -13,6 +13,9 @@ class Astar
 	//Set as true to trace 'findPath' method time
 	public var debug:Bool;
 	
+	//Populate with the tile indices from the tileset you want to make walkable
+	public var walkableTiles:Array<Int>;
+	
 	var _map:Array<Array<Int>>;
 	
 	var _startNode:Node;
@@ -198,11 +201,18 @@ class Astar
 	}
 	
 	/**
-	 * Checks weather the poInt is walkable
+	 * Checks if the target tile is walkable
+	 * Do not forget to populate the array 'walkableTiles'
+	 * with the tileset indices you want to make walkable
 	 */
 	private function isWalkable(x:Int, y:Int):Bool {
-		//var walkable:Bool = _map[y][x] == 0 || _map[y][x] == 1 || _map[y][x] == 5 || _map[y][x] == 6 || _map[y][x] == 7 || _map[y][x] == 18;
-		var walkable:Bool = _map[y][x] == 0 || _map[y][x] == 1 || _map[y][x] == -1 || _map[y][x] == 17 || _map[y][x] == 16;
+		var walkable:Bool = false;
+		for (i in 0...walkableTiles.length) {
+			if (_map[y][x] == walkableTiles[i]) {
+				walkable = true;
+				break;
+			}
+		}
 		
 		if (walkable) return true;
 		

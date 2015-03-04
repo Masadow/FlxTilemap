@@ -56,7 +56,7 @@ class FlxIsoSprite extends FlxSprite
 		var newIsoX = isoContainer.isoPos.x + motionDiffX;
 		var newIsoY = isoContainer.isoPos.y + motionDiffY;
 		
-		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY + map._tileDepth));
+		var newTile = map.getIsoTileByCoords(FlxPoint.weak(newIsoX, newIsoY + map.tileDepth));
 		
 		if (newTile == null)
 			return;

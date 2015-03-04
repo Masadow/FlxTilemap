@@ -1,4 +1,4 @@
-﻿package;
+package states;
 
 import coffeegames.mapgen.MapAlign;
 import coffeegames.mapgen.MapGenerator;
@@ -24,9 +24,9 @@ import tile.FlxIsoTilemap;
 import tile.Astar;
 
 /**
- * A FlxState which can be used for the actual gameplay.
+ * A FlxState which can be used for the game's menu.
  */
-class PlayState extends FlxState
+class Generator extends FlxState
 {
 	//Set this to true to debug map culling
 	static inline var CULLING_DEBUG:Bool = false;
@@ -61,24 +61,30 @@ class PlayState extends FlxState
 	{
 		super.create();
 		
+		#if cpp
+		cpp.vm.Profiler.start('log.txt');
+		#end
+		
+		FlxG.camera.fade(FlxColor.BLACK, 0.5, true);
+		
 		FlxG.log.redirectTraces = false;
-		FlxG.debugger.drawDebug = true;
+		//FlxG.debugger.drawDebug = true;
 		
 		isZooming = false;
 		
 		//Map generator pre-defined sizes
-		mapWidth = 100;
-		mapHeight = 100;
+/*		mapWidth = 100;
+		mapHeight = 100;*/
 		
-		timer = new FlxTimer();
-		wPos = FlxPoint.get(0, 0);
-		
-/*		mapWidth = 150;
-		mapHeight = 300;*/
+		mapWidth = 350;
+		mapHeight = 235;
 
 		//Works!
 /*		mapWidth = 1000;
 		mapHeight = 1000;*/
+		
+		timer = new FlxTimer();
+		wPos = FlxPoint.get(0, 0);
 		
 		//Map camera
 		mapCam = new FlxCamera(0, 0, 1280, 720, 1);
@@ -110,52 +116,51 @@ class PlayState extends FlxState
 	}
 	
 	function createMap()
-	{	
-		//Height Map Test
+	{
+		//Initializing map generator
+		mapGen = new MapGenerator(mapWidth, mapHeight, 3, 5, 11, false);
+		mapGen.setIndices(9, 8, 10, 11, 14, 16, 17, 15, 7, 5, 1, 1, 0);
+		mapGen.generate();
 		
-		//Positive Height
-/*		var height_map = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-						 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-						 [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-						 [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-						 [0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2],
-						 [0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2],
-						 [0,0,1,1,2,2,3,3,3,3,3,3,3,3,3,3],
-						 [0,0,1,1,2,2,3,3,3,3,3,3,3,3,3,3],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4],
-						 [0,0,1,1,2,2,3,3,4,4,4,4,4,4,4,4]];*/
-						 
-		//Negative Height
-		var height_map = [[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
-						 [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
-						 [4,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
-						 [4,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
-						 [4,4,3,3,2,2,2,2,2,2,2,2,2,2,2,2],
-						 [4,4,3,3,2,2,2,2,2,2,2,2,2,2,2,2],
-						 [4,4,3,3,2,2,1,1,1,1,1,1,1,1,1,1],
-						 [4,4,3,3,2,2,1,1,1,1,1,1,1,1,1,1],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0],
-						 [4,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0]];
-						 
-		//Testing Tiled Json
-		map = new FlxIsoTilemap(new Rectangle(0, 0, FlxG.stage.stageWidth, FlxG.stage.stageHeight));
-		map.loadFromTiledJson(Assets.getText('images/iso_height.json'), [0, 1], height_map);
+		//Shows the minimap
+		minimap = mapGen.showMinimap(FlxG.stage, 3, MapAlign.TopLeft);
+		FlxG.addChildBelowMouse(minimap);
+		minimap.x -minimap.width;
+		minimap.visible = false;
+		mapGen.showColorCodes();
+		
+		//Getting data from generator
+		var mapData:Array<Array<Int>> = mapGen.extractData();
+		
+		//Isometric tilemap
+		if (CULLING_DEBUG)
+			map = new FlxIsoTilemap(new Rectangle(128, 128, 1024, 464));
+		else
+			map = new FlxIsoTilemap(new Rectangle(0, 0, FlxG.stage.stageWidth, FlxG.stage.stageHeight));
+		
+		//TODO: Make it setable through the constructor
+		map.tileDepth = 32;
+		
+		//Old tileset, walls had ground tiles drawn in their frames to account for only one tile layer
+		//map.loadMapFrom2DArray(mapData, "images/tileset_64.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		
+		//Tileset without ground tiles drawn in the walls (only works with layers)
+		map.loadMapFrom2DArray(mapData, "images/tileset_64_exp.png", 64, 64, FlxTilemapAutoTiling.OFF, 0, 0, 1);
+		map.adjustTiles();
+		
+		//Layer setup
+		//Static layer
+		var tileRange = [0, 1, 2];
+		var groundLayer = map.createLayerFromTileArray(tileRange, 0, 1);
+		map.addLayer(groundLayer);
+		//Dynamic layer
+		tileRange = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+		var midLayer = map.createLayerFromTileArray(tileRange, 1, -1);
+		map.addLayer(midLayer);
 		
 		aStar = new Astar(IsoUtils.convertToInt(map.getLayerAt(1).data), false, false);
-		aStar.walkableTiles = [ -1, 0, 1, 16, 17];
-		//aStar.debug = true;
+		aStar.walkableTiles = [ -1, 0, 1, 5, 6, 7, 18];
+		aStar.debug = true;
 		
 		map.setTileProperties(0, FlxObject.NONE, onMapCollide, null, 8);
 		map.setTileProperties(8, FlxObject.NONE, onMapCollide, null, 8);
@@ -290,11 +295,15 @@ class PlayState extends FlxState
 /*		FlxG.collide(map, map.spriteGroup, onMapCollide);
 		map.overlaps(map.spriteGroup);*/
 		
-		//FlxG.mouse.getWorldPosition(mapCam, wPos);
+		#if cpp
+		if (FlxG.keys.justPressed.F8) {
+			cpp.vm.Profiler.stop();
+			openfl.Lib.exit();
+		}
+		#end
 		
 		handleInput(elapsed);
 		handleTouchInput(elapsed);
-		
 		
 	}
 	
@@ -378,7 +387,6 @@ class PlayState extends FlxState
 			if (final.distanceTo(initial) < 2 && !player.isWalking) {
 				
 				//Mouse world position
-				//wPos = FlxG.mouse.getWorldPosition(mapCam);
 				FlxG.mouse.getWorldPosition(mapCam, wPos);
 				
 				//var cPos = map.getIsoCoordsByPoint(map.getIsoPointByCoords(wPos));
@@ -390,9 +398,9 @@ class PlayState extends FlxState
 				cursor.x = cPos.x - cursor.width / 2;
 				cursor.y = cPos.y - cursor.height / 2;
 				
-				//player.setPosition(cPos.x + player.width / 2, cPos.y + player.height / 2);
+/*				//player.setPosition(cPos.x + player.width / 2, cPos.y + player.height / 2);
 				var pHeightOffset = player.height / 6;
-				player.setPosition(cPos.x, cPos.y + pHeightOffset);
+				player.setPosition(cPos.x, cPos.y + pHeightOffset);*/
 				
 				
 				
@@ -400,7 +408,7 @@ class PlayState extends FlxState
 				var tile = map.getIsoTileByCoords(wPos);
 				
 				if (tile == null) {
-					//trace('Tile is null, aborting');
+					trace('Tile is null, aborting');
 					return;
 				}
 				
@@ -417,12 +425,12 @@ class PlayState extends FlxState
 					return;
 				}
 					
-/*				var ptArr = new Array<FlxPoint>();
+				var ptArr = new Array<FlxPoint>();
 				var originalTileIndices = [];
 				for (i in 0...path.length) {
 					var tile = map.getIsoTileByMapCoords(path[i].x, path[i].y);
 					originalTileIndices.push(tile.index);
-					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, 6);
+					map.setIsoTile(tile.mapPos.y, tile.mapPos.x, 18);
 					ptArr.push(FlxPoint.get(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 1.5));
 				}
 				
@@ -434,7 +442,7 @@ class PlayState extends FlxState
 				}, path.length);
 				
 				//Walks directly to target
-				player.walkPath(ptArr, 200);*/
+				player.walkPath(ptArr, 200);
 				
 				//Sets the player position directly (debugging purposes)
 				//player.setPosition(tile.isoPos.x + player.width / 2, tile.isoPos.y + player.height / 2);

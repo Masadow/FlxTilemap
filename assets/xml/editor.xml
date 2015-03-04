@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+	<chrome id="tile_panel" x="0" y="0" width="150" height="720" use_def="grey"/>
+	
+	<!-- Map Info -->
+	
+	<text id="map_label" x="0" y="10" use_def="sans12c" width="150" text="Map Information" align="center">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<sprite id="info_frame" x="10" y="30" width="130" height="100" color="0x88000000"/>
+	
+	<text id="name_label" x="15" y="35" use_def="sans12c" width="120" text="Name : Untitled" align="left">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<text id="size_label" x="15" y="55" use_def="sans12c" width="120" text="Size : 0 x 0" align="left">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<text id="tile_size_label" x="15" y="75" use_def="sans12c" width="120" text="Tile Dimensions" align="center">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<text id="tile_dimensions_label" x="15" y="95" use_def="sans12c" width="120" text="W : 64 H : 64 D : 32" align="left">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<!-- End -->
+	
+	<text id="tile_label" x="0" y="205" use_def="sans12c" width="150" text="Tile : 0" align="center">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<button id="tile_back" use_def="big_button_gold" x="10" y="225" width="16" height="96" label="<">
+		<param type="string" value="back"/>
+	</button>
+	
+	<sprite id="black_frame" x="42" y="224" width="66" height="98" color="0x88000000"/>
+	
+	<sprite id="tile_img" x="43" y="225" width="64" height="96" color="0x88000000"/>
+	
+	<button id="tile_next" use_def="big_button_gold" x="124" y="225" width="16" height="96" label=">">
+		<param type="string" value="next"/>
+	</button>
+	
+	<text id="tools_label" x="0" y="335" use_def="sans12c" width="150" text="Tools" align="center">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<button_toggle id="btn_select" use_def="big_button_gold" x="10" y="356" width="130" height="32" label="Select" />
+	
+	<button_toggle id="btn_stamp" use_def="big_button_gold" x="10" y="393" width="130" height="32" label="Stamp" />
+	
+	<button_toggle id="btn_erase" use_def="big_button_gold" x="10" y="430" width="130" height="32" label="Erase" />
+	
+	<text id="layers_label" x="0" y="472" use_def="sans12c" width="150" text="Layer : 0 / 0" align="center">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<button id="btn_startup" use_def="big_button_gold" x="10" y="678" width="130" height="32" label="Show Startup Panel">
+		<param type="string" value="next"/>
+	</button>
+	
+	
+	<!-- Startup panel -->
+	<group id="grp" />
+	
+	<chrome id="startup_chrome" x="560" y="276" width="160" height="128" use_def="grey" group="startup_panel" />
+	
+	<text id="startup_label" x="572" y="294" use_def="sans12c" width="136" text="Iso Map Editor v0.1" size="11" align="center" group="startup_panel">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<button id="startup_create" use_def="big_button_gold" x="580" y="320" width="120" height="22" label="New" group="startup_panel">
+		<param type="string" value="next"/>
+	</button>
+	
+	<button id="startup_load" use_def="big_button_gold" x="580" y="345" width="120" height="22" label="Load" group="startup_panel">
+		<param type="string" value="next"/>
+	</button>
+	
+	<button id="startup_quit" use_def="big_button_gold" x="580" y="370" width="120" height="22" label="Quit" group="startup_panel">
+		<param type="string" value="next"/>
+	</button>
+	<!-- End -->
+	
+	<!-- Create New Map Panel -->
+	<chrome id="create_map_chrome" x="560" y="276" width="160" height="172" use_def="grey" group="new_map" />
+	
+	<text id="create_map_label" x="572" y="294" use_def="sans12c" width="136" text="Create New Map" size="11" align="center" group="new_map">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<input_text id="width_input" x="587" y="321" width="35" size="9" style="regular" color="0x000000" background="0xFFFFFF" align="left" group="new_map" />
+	
+	<text id="x_label" x="632" y="322" use_def="sans12c" width="20" text="X" size="12" align="center" group="new_map">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<input_text id="height_input" x="660" y="321" width="35" size="9" style="regular" color="0x000000" background="0xFFFFFF" align="left" group="new_map" />
+	
+	<text id="create_map_tile_label" x="572" y="356" use_def="sans12c" width="136" text="Tile Size" size="11" align="center" group="new_map">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<input_text id="tile_width_input" x="587" y="381" width="35" size="9" style="regular" color="0x000000" background="0xFFFFFF" align="left" group="new_map" />
+	
+	<text id="tile_x_label" x="632" y="382" use_def="sans12c" width="20" text="X" size="12" align="center" group="new_map">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<input_text id="tile_height_input" x="660" y="381" width="35" size="9" style="regular" color="0x000000" background="0xFFFFFF" align="left" group="new_map" />
+	
+	<button id="create_map_ok" use_def="big_button_gold" x="580" y="415" width="120" height="22" label="Ok" group="new_map">
+		<param type="string" value="next"/>
+	</button>
+	<!-- End -->
+	
+	<!-- Confirmation Dialog -->
+	<group id="confirm_group" />
+	
+	<chrome id="confirm_chrome" x="560" y="312" width="160" height="96" use_def="grey" group="confirm_group" />
+	
+	<text id="confirm_label" x="570" y="322" use_def="sans12c" width="140" text="Discard current Map ?" size="12" align="center" group="confirm_group">
+		<anchor x="back.left" x-flush="left" y="back.top" y-flush="top"/>		
+	</text>
+	
+	<button id="confirm_yes" use_def="big_button_gold" x="570" y="372" width="60" height="22" label="Yes" group="confirm_group">
+		<param type="string" value="next"/>
+	</button>
+	
+	<button id="confirm_cancel" use_def="big_button_gold" x="649" y="372" width="60" height="22" label="Cancel" group="confirm_group">
+		<param type="string" value="next"/>
+	</button>
+	
+	<!-- End -->
+</data>

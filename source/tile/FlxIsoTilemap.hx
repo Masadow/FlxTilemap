@@ -89,6 +89,16 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	public var blend(default, set):BlendMode = null;
 	
 	/**
+	 * The depth of a single tile.
+	 */
+	public var tileDepth(default, default):Int = 0;
+	
+	/**
+	 * Layer system variables (work in progress)
+	 */
+	public var layers(default, null):Array<MapLayer>;
+	
+	/**
 	 * Rendering helper, minimize new object instantiation on repetitive methods
 	 * Note: Currently being used only as a (_scaledTileWidth / 2, _scaledTileHeight / 2) point reference in draw() to draw the buffer.
 	 * TODO: Investigate if we can throw this in draw again and stop messing with _point in drawTilemap()
@@ -107,10 +117,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 * Internal, the width of a single tile.
 	 */
 	private var _tileWidth:Int = 0;
-	/**
-	 * Internal, the depth of a single tile.
-	 */
-	public var _tileDepth(default, default):Int = 0;
+	
 	/**
 	 * Internal, the height of a single tile.
 	 */
@@ -170,11 +177,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 */
 	private var _mapContainers:Array<Array<IsoContainer>>;
 	
-	/**
-	 * Layer system variables (work in progress)
-	 */
-	private var _layers:Array<MapLayer>;
-	
 	private var doSort:Bool;
 	
 	//Helper point to draw sprites with offset
@@ -198,7 +200,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		drawPt = new Point(0, 0);
 		_flashSpritePt = new Point(0, 0);
 		
-		_layers = new Array<MapLayer>();
+		layers = new Array<MapLayer>();
 		
 		doSort = true;
 		
@@ -289,10 +291,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			_tileWidth = graph.height;
 		}
 		
-		//_tileDepth = TileDepth; ->> Set directly by the user
-		if (_tileDepth < 0)
+		//tileDepth = TileDepth; ->> Set directly by the user
+		if (tileDepth < 0)
 		{
-			_tileDepth = _tileWidth;
+			tileDepth = _tileWidth;
 		}
 		
 		_tileHeight = TileHeight;
@@ -302,7 +304,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			_tileHeight = _tileWidth;
 		}
 		
-		frames = FlxTileFrames.fromGraphic(graph, new FlxPoint(_tileWidth, _tileDepth + _tileHeight));
+		frames = FlxTileFrames.fromGraphic(graph, new FlxPoint(_tileWidth, tileDepth + _tileHeight));
 	}
 	
 	override private function initTileObjects():Void 
@@ -316,7 +318,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		for (i in 0...length)
 		{
-			_tileObjects[i] = new FlxIsoTile(this, i, _tileWidth, _tileDepth, _tileHeight, (i >= _drawIndex), (i >= _collideIndex) ? allowCollisions : FlxObject.NONE);
+			_tileObjects[i] = new FlxIsoTile(this, i, _tileWidth, tileDepth, _tileHeight, (i >= _drawIndex), (i >= _collideIndex) ? allowCollisions : FlxObject.NONE);
 		}
 		
 		// Create debug tiles for rendering bounding boxes on demand
@@ -330,20 +332,20 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	override private function computeDimensions():Void 
 	{
 		_scaledTileWidth = _tileWidth * scale.x;
-		_scaledTileDepth = _tileDepth * scale.y;
+		_scaledTileDepth = tileDepth * scale.y;
 		_scaledTileHeight = _tileHeight * scale.y;
 		
 		// Then go through and create the actual map
 		width = widthInTiles * _scaledTileWidth;
 		height = heightInTiles * (_scaledTileDepth + _scaledTileHeight);
 		
-		frameRect = new Rectangle(0, 0, _tileWidth, _tileDepth + _tileHeight);
+		frameRect = new Rectangle(0, 0, _tileWidth, tileDepth + _tileHeight);
 	}
 	
 	override private function updateMap():Void 
 	{
 		#if (!FLX_NO_DEBUG && FLX_RENDER_BLIT)
-		_debugRect = new Rectangle(0, 0, _tileWidth, (_tileDepth + _tileHeight));
+		_debugRect = new Rectangle(0, 0, _tileWidth, (tileDepth + _tileHeight));
 		#end
 		
 		var numTiles:Int = _tileObjects.length;
@@ -356,7 +358,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	
 	/**
 	 * Must be called after loadMap to set the values and initial
-	 * position of the tiles` IsoContainers.
+	 * position of the tiles IsoContainers.
 	 */
 	public function adjustTiles():Void
 	{
@@ -368,6 +370,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		
 		_mapContainers = new Array<Array<IsoContainer>>();
 		
+		var screenOffsetX = _mapFrameRect.width / 2;
+		var screenOffsetY = _mapFrameRect.height / 2;
+		trace('Offsets : $screenOffsetX,$screenOffsetY');
+		
 		while (row < heightInTiles)
 		{
 			columnIndex = rowIndex;
@@ -377,9 +383,6 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			
 			while (column < widthInTiles)
 			{
-				var screenOffsetX = FlxG.stage.stageWidth / 2;
-				var screenOffsetY = FlxG.stage.stageHeight / 2;
-				
 				isoPoint.x = screenOffsetX + (column - row) * (_scaledTileWidth / 2);
 				isoPoint.y = screenOffsetY + (column + row) * (_scaledTileDepth / 2);
 				
@@ -438,12 +441,17 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	
 	/**
 	 * Adds a layer to the map. Currently layers work with only one tileset,
-	 * loaded through one of 'loadMap' methods
-	 * @param	layer	A MapLayer typedef to be added
+	 * loaded through one of 'loadMap' methods. If the parameter 'pos' is
+	 * omitted, adds the layer to the top of the list
+	 * @param	layer	A MapLayer object to be added
+	 * @param	pos		The position in the list. 0 == bottom of the list, drawn first
 	 */
-	public function addLayer(layer:MapLayer)
+	public function addLayer(layer:MapLayer, ?pos:Int)
 	{
-		_layers.push(layer);
+		if (pos != null)
+			layers[pos] = layer;
+		else
+			layers.push(layer);
 	}
 	
 	override public function update(elapsed:Float):Void
@@ -456,9 +464,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var hackScaleX:Float = tileScaleHack * scaleX;
 		var hackScaleY:Float = tileScaleHack * scaleY;
 		
-		//Screen size (we add one tile width / height to increase screen size and prevent columns and rows from appearing / disappearing)
-		var vpWidth = (_mapFrameRect.width + _scaledTileWidth) / hackScaleX;
-		var vpHeight = (_mapFrameRect.height + (_scaledTileDepth + _scaledTileHeight)) / hackScaleY;
+		//Screen size (we add one tile width / height to increase screen size and prevent columns and rows from appearing / disappearing inside the screen rect)
+		//Two extra tiles
+		var vpWidth = (_mapFrameRect.width + (_scaledTileWidth * 2)) / hackScaleX;
+		var vpHeight = (_mapFrameRect.height + (_scaledTileDepth + _scaledTileHeight) * 2) / hackScaleY;
 		
 		//Screen center (world position)
 		var screenX:Float = camera.scroll.x - (vpWidth / 2);
@@ -468,19 +477,17 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var tileX:Int = Std.int((screenX + (2 * screenY) - (_scaledTileWidth / 2)) / (_scaledTileWidth - 1));
 		var tileY:Int = Std.int((screenX - (2 * screenY) - (_scaledTileDepth / 2)) / (-_scaledTileWidth - 1));
 		
-		//Number of rows and columns (we add 1 tile to row and column to prevent columsn and rows from appearing / disappearing
-		var rowCount = Std.int(vpHeight / (_scaledTileDepth / 2) + 1);
-		var colCount = Std.int((vpWidth / _scaledTileWidth) + 1);
+		//Number of rows and columns
+		//No additions
+		var rowCount = Std.int(vpHeight / (_scaledTileDepth / 2));
+		var colCount = Std.int(vpWidth / _scaledTileWidth);
 		
 		var mapX:Int = 0;
 		var mapY:Int = 0;
 		
-		for (layer in _layers) {
-			layer.drawStack = [];
-		}
-		
-		for (k in 0..._layers.length) {
+		for (k in 0...layers.length) {
 			var layerCount:Int = 0;
+			layers[k].drawStack = [];
 			for (i in 0...rowCount) {
 				for (j in 0...colCount) {
 					mapX = tileX + j + Std.int(i / 2) + (i % 2);
@@ -489,7 +496,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					if (mapY < 0 || mapX < 0 || mapY >= heightInTiles || mapX >= widthInTiles) {
 						continue;
 					} else {
-						var layer = _layers[k];
+						var layer = layers[k];
 						if (layer.data[mapY][mapX].index > -1) {
 							layer.drawStack[layerCount] = layer.data[mapY][mapX];
 							layerCount++;
@@ -502,7 +509,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		for (spr in spriteGroup.members)
 		{
 			spr.update(elapsed);
-			var layer = _layers[spr.layer];
+			var layer = layers[spr.layer];
 			layer.drawStack[layer.drawStack.length] = spr.isoContainer;
 			
 			if (spr.mustSort)
@@ -510,7 +517,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		}
 		
 		if (doSort) {
-			for (layer in _layers) {
+			for (layer in layers) {
 				if (layer.type == 1)
 					IsoUtils.sortRange(layer.drawStack, IsoUtils.compareNumberRise, 0, layer.drawStack.length);
 			}
@@ -559,10 +566,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		_point.x = (Camera.scroll.x * scrollFactor.x) - x; //modified from getScreenXY()
 		_point.y = (Camera.scroll.y * scrollFactor.y) - y;
 		
-		for (i in 0..._layers.length) {
-			for (j in 0..._layers[i].drawStack.length) {
+		for (i in 0...layers.length) {
+			for (j in 0...layers[i].drawStack.length) {
 					
-					var isoCont = _layers[i].drawStack[j];
+					var isoCont = layers[i].drawStack[j];
 					
 					if (isoCont == null || isoCont.index == -1)
 						continue;
@@ -783,7 +790,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 
 	public function setIsoTile(X:Int, Y:Int, Index:Int, layer:Int = 0):Void
 	{
-		var isoContainer = _layers[layer].data[X][Y];
+		var isoContainer = layers[layer].data[X][Y];
 		isoContainer.index = Index;
 	}
 	
@@ -799,11 +806,12 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var screenOffsetY = _mapFrameRect.height / 2;
 		
 		var cX = Coord.x - screenOffsetX;
+		
 		var cY = Coord.y - screenOffsetY - (_scaledTileDepth / 2);
 		
 		//World to Map coordinates
-		var mapX = (cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2;
-		var mapY = (cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2;
+		var mapX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
+		var mapY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
 		
 		return FlxPoint.weak(mapY, mapX);
 	}
@@ -815,10 +823,17 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	 */
 	public function getIsoCoordsByPoint(pt:FlxPoint):FlxPoint
 	{
-		var x = (pt.x - pt.y) * (_scaledTileWidth / 2);
+		var x = (pt.y - pt.x) * (_scaledTileWidth / 2);
 		var y = (pt.x + pt.y) * (_scaledTileDepth / 2);
 		
-		return FlxPoint.weak(x, y);
+		//Map offset
+		var screenOffsetX = _mapFrameRect.width / 2;
+		var screenOffsetY = _mapFrameRect.height / 2;
+		
+		var cX = x + screenOffsetX;
+		var cY = y + screenOffsetY;
+		
+		return FlxPoint.weak(cX, cY);
 	}
 	
 	/**
@@ -839,29 +854,100 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var mapX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
 		var mapY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
 		
+		//trace('Non-adjusted tile position found : $mapX,$mapY');
+		
 		var isoContainer = null;
-		if (mapX >= 0 && mapX < widthInTiles - 1 && mapY >=0 && mapY < heightInTiles - 1) {
-			isoContainer = _layers[layer].data[mapY][mapX];
-		}
+		
+		if (mapX > -1 && mapX < widthInTiles && mapY > -1 && mapY < heightInTiles)
+			isoContainer = layers[layer].data[mapY][mapX];
+		
+/*		//First case, normal coordinate
+		if (mapX >= 0 && mapX < widthInTiles && mapY >=0 && mapY < heightInTiles) {
+			isoContainer = layers[layer].data[mapY][mapX];
+			//if (isoContainer.heightLevel > 0) {
+				//cY -= (isoContainer.heightLevel) * 32;
+				//cY -= (isoContainer.heightLevel - 1) * 64;
+				//cY += (isoContainer.heightLevel - 1) * 64;
+				//cY -= Math.ceil(isoContainer.heightLevel / 2) * 64;
+				
+				//trace( "isoContainer.heightLevel : " + isoContainer.heightLevel );
+				//var newX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
+				//var newY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
+				//
+				//trace('Adjusted tile position : $newX,$newY');
+				//isoContainer = layers[layer].data[newY][newX];
+			//}
+			
+			//Check the the tile one height level below (+2, +2)
+			//If it has a height level greater than the first one found, that is the adjusted tile
+			var testX = mapX + 2 >= widthInTiles ? widthInTiles - 1 : mapX + 2;
+			var testY = mapY + 2 >= heightInTiles ? heightInTiles - 1 : mapY + 2;
+			//if (layers[layer].data[testY][testX].heightLevel > isoContainer.heightLevel) {
+				
+				//cY += layers[layer].data[testY][testX].heightLevel * 64;
+				//cY += layers[layer].data[testY][testX].heightLevel * 32;
+				cY += (isoContainer.heightLevel - layers[layer].data[testY][testX].heightLevel) * 64;
+				
+				var newX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
+				var newY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
+				
+				isoContainer = layers[layer].data[newY][newX];
+				trace( "isoContainer : " + isoContainer );
+			//}
+			
+		} else if (mapX >= widthInTiles || mapY >= heightInTiles) {
+			//Second case - mapX > widthInTiles || mapY > heightInTiles
+			trace('Map out-of-bounds position found : $mapX,$mapY');
+			
+			//Negative heights
+			isoContainer = null;
+			
+			//Positive Heights
+			//Check for the tile at different heights, starting with the highest one (5, 4, 3, 2, 1);
+			//Each height level will decrease height in tiles by two
+			//cY -= 4 * 64; //4 = highest position
+			//var newX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
+			//var newY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
+			//
+			//if (newX >= 0 && newX < widthInTiles && newY >= 0 && newY < heightInTiles)
+				//isoContainer = layers[layer].data[newY][newX];
+				//
+			//trace('This tile could be : $newX,$newY');
+		} else if (mapX < 0 || mapY < 0) {
+			//Third case - mapX < 0 || mapY < 0
+			
+			//Positive heights
+			//isoContainer = null;
+			
+			//Negative Heights
+			cY += 4 * 64; //4 = highest position
+			var newX = Std.int((cX / (_scaledTileWidth / 2) + cY / (_scaledTileDepth / 2)) / 2);
+			var newY = Std.int((cY / (_scaledTileDepth / 2) - cX / (_scaledTileWidth / 2)) / 2);
+			
+			if (newX >= 0 && newX < widthInTiles && newY >= 0 && newY < heightInTiles)
+				isoContainer = layers[layer].data[newY][newX];
+				
+			trace('This tile could be : $newX,$newY');
+		}*/
 		
 		return isoContainer;
 	}
 	
 	public function getLayerAt(index:Int):MapLayer
 	{
-		return _layers[index];
+		return layers[index];
 	}
 	
 	public function getIsoTileByMapCoords(X:Int, Y:Int, layer:Int = 0):IsoContainer
 	{
-		return _layers[layer].data[Y][X];
+		return layers[layer].data[Y][X];
 	}
 	
 	/**
 	 * Creates 2D map data layer from an array of tiles
-	 * @param	tileIds	An array containing tileset indices
-	 * @param	type Layer type (0 = Static, 1 = Dynamic)
-	 * @param	fillIndex The tile id to use for blank spaces in the map (-1 does not get drawn)
+	 * @param	tileIds		An array containing tileset indices
+	 * @param	type		Layer type (0 = Static, 1 = Dynamic)
+	 * @param	fillIndex	The tile id to use for blank spaces in the map (-1 does not get drawn)
 	 * @return	A MapLayer object
 	 */
 	public function createLayerFromTileArray(tileIds:Array<Int>, type:Int, fillIndex:Int = -1):MapLayer
@@ -889,6 +975,77 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		return mapLayer;
 	}
 	
+	public function createLayerFrom2DArray(map:Array<Array<Int>>, type:Int):MapLayer
+	{
+		if (map == null || map[0] == null)
+			return null;
+		
+		if (widthInTiles < 0)
+			widthInTiles = map[0].length;
+		if (heightInTiles < 0)
+			heightInTiles = map.length;
+		
+		var data = new Array<Array<IsoContainer>>();
+		var rowIndex = 0;
+		var columnIndex = 0;
+		var isoPoint = new Point(0, 0);
+		
+		for (i in 0...heightInTiles) {
+			
+			data[i] = new Array<IsoContainer>();
+			columnIndex = rowIndex;
+			
+			for (j in 0...widthInTiles) {
+				
+				var screenOffsetX = FlxG.stage.stageWidth / 2;
+				var screenOffsetY = FlxG.stage.stageHeight / 2;
+				
+				isoPoint.x = screenOffsetX + (j - i) * (_scaledTileWidth / 2);
+				isoPoint.y = screenOffsetY + (j + i) * (_scaledTileDepth / 2);
+				
+				//data[i][j] = new IsoContainer(null);
+				var container = new IsoContainer(null);
+				
+				//TODO: Experimenting with depthModifier var. Remove this and allow depthModifier to be set through setTileProperties()
+				//if (map[columnIndex] == 0 || map[columnIndex] == 1) {
+				if (map[i][j] == 0 || map[i][j] == 1) {
+					container.depthModifier = 500;	//Floor tiles
+				} else {
+					container.depthModifier = 1000;	//Wall tiles
+				}
+				
+				//Height map
+				//if (heightMap != null)
+					//container.heightLevel = heightMap[row][column];
+				
+				//container.depthModifier += 200 * container.heightLevel;
+				container.depthModifier -= 200 * container.heightLevel;
+				
+				//Storing isometric position for tiles
+				container.setIso(isoPoint.x, isoPoint.y);
+				
+				//Calculating and storing sorting depth
+				container.depth = Std.int(isoPoint.y * container.depthModifier + isoPoint.x);
+				
+				//Storing tile type (index relative to its position inside the tileset)
+				//container.index = Std.int(map[columnIndex]);
+				container.index = Std.int(map[i][j]);
+				
+				//Storing column and row position
+				container.setMap(j, i);
+				
+				data[i][j] = container;
+				
+				columnIndex++;
+			}
+			
+			rowIndex += widthInTiles;
+		}
+		
+		var mapLayer = { data:data, drawStack:new Array<IsoContainer>(), type:type };
+		return mapLayer;
+	}
+	
 	public function loadFromTiledJson(data:String, layerTypes:Array<Int>, ?heightMap:Array<Array<Int>>):Void
 	{
 		var tiledData = Json.parse(data);
@@ -896,11 +1053,13 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		widthInTiles = Std.int(tiledData.width);
 		heightInTiles = Std.int(tiledData.height);
 		
+		trace('Map size : $widthInTiles,$heightInTiles');
+		
 		var tWidth = Std.int(tiledData.tilewidth);
-		_tileDepth = Std.int(tiledData.tileheight);
+		tileDepth = Std.int(tiledData.tileheight);
 		
 		//Supports only single tileset for now
-		var tHeight = Std.int(tiledData.tilesets[0].tileheight) - _tileDepth;
+		var tHeight = Std.int(tiledData.tilesets[0].tileheight) - tileDepth;
 		
 		var tGraphic = tiledData.tilesets[0].image;
 		var tiledLayers:Array<Dynamic> = tiledData.layers;
@@ -948,7 +1107,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					if (heightMap != null)
 						container.heightLevel = heightMap[row][column];
 					
-					container.depthModifier += 200 * container.heightLevel;
+					//container.depthModifier += 200 * container.heightLevel;
+					container.depthModifier -= 200 * container.heightLevel;
 					
 					//Storing isometric position for tiles
 					container.setIso(isoPoint.x, isoPoint.y);
@@ -973,7 +1133,9 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				row++;
 			}
 			
-			_layers[i] = { data:layerData, drawStack:new Array<IsoContainer>(), type:layerTypes[i] };
+			trace('layerData size : ${layerData.length},${layerData[0].length}');
+			
+			layers[i] = { data:layerData, drawStack:new Array<IsoContainer>(), type:layerTypes[i] };
 		}
 	}
 	
@@ -1219,10 +1381,10 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 		var debugTile:BitmapData;
 		#end 
 		
-		var heightOffset = _tileHeight - _tileDepth;
+		var heightOffset = _tileHeight - tileDepth;
 		
-		for (i in 0..._layers.length) {
-			var layer = _layers[i];
+		for (i in 0...layers.length) {
+			var layer = layers[i];
 			for (j in 0...layer.drawStack.length) {
 				
 				_isoObject = layer.drawStack[j];
@@ -1231,7 +1393,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 					continue;
 				
 				drawPt.x = _isoObject.isoPos.x - _point.x;
-				drawPt.y = (_isoObject.isoPos.y - _point.y) + (_isoObject.heightLevel * heightOffset);
+				//drawPt.y = (_isoObject.isoPos.y - _point.y) + (_isoObject.heightLevel * heightOffset);
+				drawPt.y = (_isoObject.isoPos.y - _point.y) - (_isoObject.heightLevel * heightOffset);
 				
 				_tile = _tileObjects[_isoObject.index];
 				
@@ -1241,7 +1404,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 				{
 					_isoObject.sprite.draw();
 					_flashSpritePt.x = _isoObject.sprite.x - _point.x;
-					_flashSpritePt.y = (_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) + (_isoObject.heightLevel * heightOffset);
+					//_flashSpritePt.y = (_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) + (_isoObject.heightLevel * heightOffset);
+					_flashSpritePt.y = (_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) - (_isoObject.heightLevel * heightOffset);
 					
 					//Sprite
 					Buffer.pixels.copyPixels(_isoObject.sprite.getFlxFrameBitmapData() , frameRect, _flashSpritePt, null, null, true);
@@ -1301,7 +1465,8 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 						
 						//Sprite position
 						var charX = (_isoObject.sprite.x - _point.x) * hackScaleX;
-						var charY = ((_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) * hackScaleY) + (_isoObject.heightLevel * heightOffset);
+						//var charY = ((_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) * hackScaleY) + (_isoObject.heightLevel * heightOffset);
+						var charY = ((_isoObject.sprite.y - (_scaledTileDepth / 2) - _point.y) * hackScaleY) - (_isoObject.heightLevel * heightOffset);
 							
 						//Sprite
 						charDrawItem.setDrawData(FlxPoint.weak(charX, charY), _isoObject.sprite.frame.tileID, _matrix, isColored, color, alpha);
@@ -1332,14 +1497,14 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	private function makeDebugTile(Color:FlxColor):BitmapData
 	{
 		var debugTile:BitmapData;
-		debugTile = new BitmapData(_tileWidth, (_tileDepth + _tileHeight), true, 0);
+		debugTile = new BitmapData(_tileWidth, (tileDepth + _tileHeight), true, 0);
 
 		var gfx:Graphics = FlxSpriteUtil.flashGfx;
 		gfx.clear();
 		gfx.moveTo(0, 0);
 		gfx.lineStyle(1, Color, 0.5);
 		gfx.lineTo(_tileWidth - 1, 0);
-		gfx.lineTo(_tileWidth - 1, (_tileDepth + _tileHeight) - 1);
+		gfx.lineTo(_tileWidth - 1, (tileDepth + _tileHeight) - 1);
 		gfx.lineTo(0, _tileHeight - 1);
 		gfx.lineTo(0, 0);
 		
@@ -1368,7 +1533,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	
 	private inline function createBuffer(camera:FlxCamera):FlxIsoTilemapBuffer
 	{
-		var buffer = new FlxIsoTilemapBuffer(_tileWidth, _tileDepth, _tileHeight, widthInTiles, heightInTiles, camera, scale.x, scale.y);
+		var buffer = new FlxIsoTilemapBuffer(_tileWidth, tileDepth, _tileHeight, widthInTiles, heightInTiles, camera, scale.x, scale.y);
 		buffer.pixelPerfectRender = pixelPerfectRender;
 		return buffer;
 	}
@@ -1385,7 +1550,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 			
 			// Calculate the required number of columns and rows
 			_helperBuffer.updateColumns(_tileWidth, widthInTiles, scale.x, camera);
-			_helperBuffer.updateRows((_tileDepth + _tileHeight), heightInTiles, scale.y, camera);
+			_helperBuffer.updateRows((tileDepth + _tileHeight), heightInTiles, scale.y, camera);
 			
 			// Create a new buffer if the number of columns and rows differs
 			if (buffer == null || _helperBuffer.columns != buffer.columns || _helperBuffer.rows != buffer.rows)
@@ -1532,7 +1697,7 @@ class FlxIsoTilemap extends FlxBaseTilemap<FlxIsoTile>
 	private function setScaleYCallback(Scale:FlxPoint):Void
 	{
 		_scaledTileHeight = _tileHeight * scale.y;
-		_scaledTileDepth = _tileDepth * scale.y;
+		_scaledTileDepth = tileDepth * scale.y;
 		height = heightInTiles * _scaledTileHeight;
 		
 		if (cameras != null)

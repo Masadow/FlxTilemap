@@ -59,7 +59,7 @@ class IsoUtils
 		return a.depth - b.depth;
 	}
 	
-	public static function convertIsoToInt(data:Array<Array<IsoContainer>>):Array<Array<Int>>
+	public static function convertToInt(data:Array<Array<IsoContainer>>):Array<Array<Int>>
 	{
 		var arr = new Array<Array<Int>>();
 		for (i in 0...data.length) {

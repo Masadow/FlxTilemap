@@ -1,4 +1,4 @@
-﻿package;
+﻿package states;
 
 import coffeegames.mapgen.MapAlign;
 import coffeegames.mapgen.MapGenerator;
@@ -26,7 +26,7 @@ import tile.Astar;
 /**
  * A FlxState which can be used for the actual gameplay.
  */
-class PlayState extends FlxState
+class Heights extends FlxState
 {
 	//Set this to true to debug map culling
 	static inline var CULLING_DEBUG:Bool = false;
@@ -61,24 +61,15 @@ class PlayState extends FlxState
 	{
 		super.create();
 		
+		FlxG.camera.fade(FlxColor.BLACK, 0.5, true);
+		
 		FlxG.log.redirectTraces = false;
-		FlxG.debugger.drawDebug = true;
+		//FlxG.debugger.drawDebug = true;
 		
 		isZooming = false;
 		
-		//Map generator pre-defined sizes
-		mapWidth = 100;
-		mapHeight = 100;
-		
 		timer = new FlxTimer();
 		wPos = FlxPoint.get(0, 0);
-		
-/*		mapWidth = 150;
-		mapHeight = 300;*/
-
-		//Works!
-/*		mapWidth = 1000;
-		mapHeight = 1000;*/
 		
 		//Map camera
 		mapCam = new FlxCamera(0, 0, 1280, 720, 1);
@@ -378,7 +369,6 @@ class PlayState extends FlxState
 			if (final.distanceTo(initial) < 2 && !player.isWalking) {
 				
 				//Mouse world position
-				//wPos = FlxG.mouse.getWorldPosition(mapCam);
 				FlxG.mouse.getWorldPosition(mapCam, wPos);
 				
 				//var cPos = map.getIsoCoordsByPoint(map.getIsoPointByCoords(wPos));
@@ -390,7 +380,6 @@ class PlayState extends FlxState
 				cursor.x = cPos.x - cursor.width / 2;
 				cursor.y = cPos.y - cursor.height / 2;
 				
-				//player.setPosition(cPos.x + player.width / 2, cPos.y + player.height / 2);
 				var pHeightOffset = player.height / 6;
 				player.setPosition(cPos.x, cPos.y + pHeightOffset);
 				
